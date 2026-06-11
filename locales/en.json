@@ -310,6 +310,8 @@
     "weak": "GPS signal is weak. Move to an open area and try again.",
     "fake_detected": "Mock location detected. Cannot check in.",
     "outside_range": "You are not at a company location.",
+    "timeout": "GPS timed out. Move to an open area and try again.",
+    "unavailable": "Location services are not available on this device.",
     "locating": "Locating…",
     "accuracy_label": "Signal accuracy"
   },

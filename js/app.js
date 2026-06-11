@@ -106,6 +106,7 @@ const ROUTES = {
 // manager.js, hr.js, auth.js). They are looked up in window scope at runtime.
 // ---------------------------------------------------------------------------
 const VIEW_RENDER = {
+  'home':             'renderEmployeeHome',
   'history':          'renderAttendanceHistory',
   'leave':            'renderLeaveForm',
   'leave-balance':    'renderLeaveBalance',

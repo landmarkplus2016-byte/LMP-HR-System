@@ -207,23 +207,236 @@ function safeEmployee(employee) {
 }
 
 // ---------------------------------------------------------------------------
-// WebAuthn stubs — implemented in Stage 2
+// webauthnRegisterChallenge
 // ---------------------------------------------------------------------------
-// These exist so the router in Code.gs can reference them without errors.
-// They will be replaced with real implementations in Auth.gs during Stage 2.
-
+// Payload: { session_token, device_id }
+// Requires a valid session. Generates a random 32-byte challenge, stores it
+// in the Sessions tab (token_type='webauthn_reg', expires in 2 min), and
+// returns it base64url-encoded for the PWA's navigator.credentials.create().
 function webauthnRegisterChallenge(payload) {
-  return error('Not yet implemented', 'غير متاح بعد');
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+
+  const challenge = _generateChallenge();
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
+
+  appendRow(getSheet('Sessions'), {
+    token:       challenge,
+    employee_id: auth.employee.id,
+    role:        auth.employee.role,
+    expires_at:  expiresAt.toISOString(),
+    device_id:   String(payload.device_id || ''),
+    token_type:  'webauthn_reg',
+    challenge:   challenge,
+    used:        ''
+  });
+
+  return ok({ challenge: challenge });
 }
 
+// ---------------------------------------------------------------------------
+// webauthnRegisterComplete
+// ---------------------------------------------------------------------------
+// Payload: { session_token, credentialId, publicKey (attestationObject b64url),
+//            signedChallenge (clientDataJSON b64url) }
+// Verifies the clientDataJSON challenge matches the stored challenge, then
+// writes the credential ID and attestation blob to the Employees tab.
 function webauthnRegisterComplete(payload) {
-  return error('Not yet implemented', 'غير متاح بعد');
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+
+  const credentialId  = String(payload.credentialId   || '').trim();
+  const attestObj     = String(payload.publicKey       || '').trim();
+  const clientDataB64 = String(payload.signedChallenge || '').trim();
+
+  if (!credentialId || !attestObj || !clientDataB64) {
+    return error('Missing credential data', 'بيانات الاعتماد مفقودة');
+  }
+
+  // Decode and parse clientDataJSON
+  let clientData;
+  try {
+    clientData = JSON.parse(_b64urlToString(clientDataB64));
+  } catch (e) {
+    return error('Invalid credential data', 'بيانات الاعتماد غير صالحة');
+  }
+
+  if (clientData.type !== 'webauthn.create') {
+    return error('Invalid operation type', 'نوع العملية غير صالح');
+  }
+  if (!clientData.origin || !clientData.origin.startsWith('https://')) {
+    return error('Insecure origin rejected', 'المصدر غير آمن');
+  }
+
+  // Find the pending challenge row (strip any padding for safe comparison)
+  const challenge = (clientData.challenge || '').replace(/=/g, '');
+  const sessSheet = getSheet('Sessions');
+  const row = _findChallengeRow(sessSheet, challenge, auth.employee.id, 'webauthn_reg');
+  if (!row) {
+    return error('Challenge not found or expired', 'انتهت صلاحية التحقق أو غير موجود');
+  }
+
+  // Mark single-use
+  updateRow(sessSheet, row.__rowIndex, { used: 'TRUE' });
+
+  // Persist credential against the employee record
+  const empSheet = getSheet('Employees');
+  updateRow(empSheet, auth.employee.__rowIndex, {
+    webauthn_credential_id:  credentialId,
+    webauthn_public_key:     attestObj,
+    webauthn_registered_at:  new Date().toISOString()
+  });
+
+  return ok({ registered: true });
 }
 
+// ---------------------------------------------------------------------------
+// webauthnAuthChallenge
+// ---------------------------------------------------------------------------
+// Payload: { session_token, device_id }
+// Same as webauthnRegisterChallenge but token_type='webauthn_auth'.
+// Each challenge is single-use and expires in 2 minutes.
 function webauthnAuthChallenge(payload) {
-  return error('Not yet implemented', 'غير متاح بعد');
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+
+  const challenge = _generateChallenge();
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
+
+  appendRow(getSheet('Sessions'), {
+    token:       challenge,
+    employee_id: auth.employee.id,
+    role:        auth.employee.role,
+    expires_at:  expiresAt.toISOString(),
+    device_id:   String(payload.device_id || ''),
+    token_type:  'webauthn_auth',
+    challenge:   challenge,
+    used:        ''
+  });
+
+  return ok({ challenge: challenge });
 }
 
+// ---------------------------------------------------------------------------
+// webauthnAuthVerify
+// ---------------------------------------------------------------------------
+// Payload: { session_token, signedResponse: {
+//   credentialId, clientDataJSON, authenticatorData, signature  (all b64url)
+// }}
+//
+// Verification steps:
+//   1. clientDataJSON.type === 'webauthn.get'
+//   2. clientDataJSON.origin is HTTPS
+//   3. challenge in clientDataJSON matches a valid, unused, unexpired row
+//   4. credentialId matches the employee's registered credential
+//   5. challenge row is marked used (single-use enforcement)
+//   6. A one-time checkin_token (UUID, 2-min TTL) is issued
+//
+// NOTE: Apps Script does not expose ECDSA P-256 primitives, so the
+// assertion signature over authenticatorData + SHA-256(clientDataJSON)
+// cannot be cryptographically verified here. Security relies on the
+// server-generated single-use challenge, HTTPS transport, and session
+// validation as layered controls.
 function webauthnAuthVerify(payload) {
-  return error('Not yet implemented', 'غير متاح بعد');
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+
+  const sr = payload.signedResponse;
+  if (!sr || !sr.credentialId || !sr.clientDataJSON || !sr.authenticatorData || !sr.signature) {
+    return error('Missing signed response fields', 'بيانات الاستجابة الموقّعة مفقودة');
+  }
+
+  // Decode and parse clientDataJSON
+  let clientData;
+  try {
+    clientData = JSON.parse(_b64urlToString(sr.clientDataJSON));
+  } catch (e) {
+    return error('Invalid signed response', 'بيانات الاستجابة غير صالحة');
+  }
+
+  if (clientData.type !== 'webauthn.get') {
+    return error('Invalid operation type', 'نوع العملية غير صالح');
+  }
+  if (!clientData.origin || !clientData.origin.startsWith('https://')) {
+    return error('Insecure origin rejected', 'المصدر غير آمن');
+  }
+
+  // Validate challenge
+  const challenge = (clientData.challenge || '').replace(/=/g, '');
+  const sessSheet = getSheet('Sessions');
+  const row = _findChallengeRow(sessSheet, challenge, auth.employee.id, 'webauthn_auth');
+  if (!row) {
+    return error('Challenge not found or expired', 'انتهت صلاحية التحقق أو غير موجود');
+  }
+
+  // Verify credential ID matches the registered credential for this employee
+  const storedCredId = String(auth.employee.webauthn_credential_id || '').trim();
+  if (!storedCredId) {
+    return error('Biometric not registered for this account', 'البصمة غير مسجّلة لهذا الحساب');
+  }
+  if (storedCredId !== sr.credentialId) {
+    return error('Credential mismatch', 'بيانات الاعتماد غير متطابقة');
+  }
+
+  // Mark challenge as used — prevents replay within the TTL window
+  updateRow(sessSheet, row.__rowIndex, { used: 'TRUE' });
+
+  // Issue a one-time checkin_token (2-min expiry)
+  const checkinToken = Utilities.getUuid();
+  const tokenExpiry  = new Date(Date.now() + 2 * 60 * 1000);
+
+  appendRow(sessSheet, {
+    token:       checkinToken,
+    employee_id: auth.employee.id,
+    role:        auth.employee.role,
+    expires_at:  tokenExpiry.toISOString(),
+    device_id:   String(payload.device_id || ''),
+    token_type:  'checkin_token',
+    challenge:   '',
+    used:        ''
+  });
+
+  return ok({ verified: true, checkin_token: checkinToken });
+}
+
+// ---------------------------------------------------------------------------
+// Private helpers — WebAuthn
+// ---------------------------------------------------------------------------
+
+// Generate a base64url-encoded 32-byte challenge.
+// Uses SHA-256 of UUID + high-res timestamp + random decimal for entropy.
+function _generateChallenge() {
+  const seed  = Utilities.getUuid() + Date.now().toString() + Math.random().toString(36).slice(2);
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, seed, Utilities.Charset.UTF_8);
+  return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, '');
+}
+
+// Decode a base64url string to a UTF-8 string.
+// Used to parse clientDataJSON sent by the browser (JSON, UTF-8 encoded).
+function _b64urlToString(b64url) {
+  const padding = (4 - (b64url.length % 4)) % 4;
+  const padded  = b64url + '='.repeat(padding);
+  const bytes   = Utilities.base64DecodeWebSafe(padded);
+  return Utilities.newBlob(bytes).getDataAsString();
+}
+
+// Find a valid challenge row: correct type, employee, not used, not expired.
+// Returns the row object (with __rowIndex) or null.
+function _findChallengeRow(sessSheet, challenge, employeeId, tokenType) {
+  if (!challenge) return null;
+
+  const row = findRow(sessSheet, 'token', challenge);
+  if (!row) return null;
+  if (String(row.token_type)   !== tokenType)           return null;
+  if (String(row.employee_id)  !== String(employeeId))  return null;
+  if (String(row.used).toUpperCase() === 'TRUE')        return null;
+
+  const now       = new Date();
+  const expiresAt = new Date(row.expires_at);
+  if (isNaN(expiresAt.getTime()) || now > expiresAt) {
+    deleteSheetRow(sessSheet, row.__rowIndex);
+    return null;
+  }
+
+  return row;
 }

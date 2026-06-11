@@ -69,6 +69,204 @@
   border-radius: 0 0 var(--r-sm) var(--r-sm);
 }
 
+/* ── Employee check-in screen ───────────────────────────────────────────────── */
+
+.checkin-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-6) var(--sp-4) var(--sp-8);
+  min-height: 100%;
+  gap: var(--sp-5);
+}
+
+.checkin-header {
+  text-align: center;
+  width: 100%;
+}
+
+.checkin-greeting {
+  font-size: var(--text-lg);
+  font-weight: var(--fw-semi);
+  color: var(--c-text);
+}
+
+.checkin-date {
+  font-size: var(--text-sm);
+  color: var(--c-text-secondary);
+  margin-block-start: var(--sp-1);
+}
+
+/* GPS indicator row */
+.checkin-gps-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  color: var(--c-text-secondary);
+  min-height: 24px;
+}
+
+.gps-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--c-text-muted);
+  flex-shrink: 0;
+  transition: background var(--dur-base);
+}
+.gps-dot[data-state="loading"] { background: var(--c-late); animation: gps-blink 1s infinite; }
+.gps-dot[data-state="success"] { background: var(--c-present); }
+.gps-dot[data-state="error"]   { background: var(--c-absent); }
+
+@keyframes gps-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* Action area */
+.checkin-action-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-5);
+  flex: 1;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Button + pulse ring wrapper */
+.checkin-btn-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 180px;
+}
+
+/* Pulse ring — only visible when .checkin-ring-active */
+.checkin-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-full);
+  border: 3px solid var(--c-primary-mid);
+  opacity: 0;
+  pointer-events: none;
+}
+.checkin-ring-active {
+  animation: ring-pulse 2s var(--ease-out) infinite;
+}
+@keyframes ring-pulse {
+  0%   { transform: scale(1);    opacity: 0.7; }
+  70%  { transform: scale(1.35); opacity: 0;   }
+  100% { transform: scale(1.35); opacity: 0;   }
+}
+
+/* Check-in button */
+.checkin-btn {
+  position: relative;
+  z-index: 1;
+  width: 160px;
+  height: 160px;
+  border-radius: var(--r-full);
+  background: var(--c-primary);
+  color: var(--c-text-inverse);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  box-shadow: var(--shadow-lg), 0 0 0 6px var(--c-primary-dim);
+  transition: transform var(--dur-fast), box-shadow var(--dur-fast), background var(--dur-base);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.checkin-btn:active:not(:disabled) {
+  transform: scale(0.96);
+  box-shadow: var(--shadow-md), 0 0 0 4px var(--c-primary-dim);
+}
+
+.checkin-btn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.checkin-btn-label {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semi);
+  line-height: var(--lh-tight);
+  text-align: center;
+}
+
+/* Checkout variant — green */
+.checkin-btn-checkout {
+  background: var(--c-present);
+  box-shadow: var(--shadow-lg), 0 0 0 6px var(--c-present-bg);
+}
+.checkin-btn-checkout:active:not(:disabled) {
+  box-shadow: var(--shadow-md), 0 0 0 4px var(--c-present-bg);
+}
+
+/* Success flash — green, no interaction */
+.checkin-btn-success {
+  background: var(--c-present);
+  box-shadow: var(--shadow-lg), 0 0 0 6px var(--c-present-bg);
+  animation: success-pop 0.3s var(--ease-out) forwards;
+}
+@keyframes success-pop {
+  0%   { transform: scale(0.95); }
+  60%  { transform: scale(1.04); }
+  100% { transform: scale(1);    }
+}
+
+/* Done (checked out) — muted */
+.checkin-btn-done {
+  background: var(--c-present);
+  opacity: 0.75;
+}
+
+/* Status/error message below button */
+.checkin-msg {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-lg);
+  max-width: 280px;
+  line-height: var(--lh-snug);
+}
+.checkin-msg-error   { color: var(--c-absent);  background: var(--c-absent-bg);  }
+.checkin-msg-success { color: var(--c-present); background: var(--c-present-bg); }
+.checkin-msg-pending { color: var(--c-pending); background: var(--c-pending-bg); }
+
+/* Biometric registration card */
+.bio-reg-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-8) var(--sp-4);
+  text-align: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.bio-reg-icon { color: var(--c-primary); }
+
+.bio-reg-title {
+  font-size: var(--text-md);
+  font-weight: var(--fw-semi);
+}
+
+.bio-reg-sub {
+  font-size: var(--text-sm);
+  color: var(--c-text-secondary);
+}
+
+.bio-reg-btn { min-width: 160px; }
+
 /* ── Mobile view padding ────────────────────────────────────────────────────── */
 @media (max-width: 899px) {
   #app {
