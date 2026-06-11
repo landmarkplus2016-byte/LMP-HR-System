@@ -551,6 +551,32 @@ input:focus, textarea:focus, select:focus {
 .toast-warning  { background: var(--c-late);     color: var(--c-text); }
 .toast-info     { background: var(--c-primary);  }
 
+/* ── api.js cold-start connecting banner ────────────────────────────────────── */
+/* Injected by api.js when the loading screen is no longer visible.
+   Shown only once — on the first API call after the loading screen hides. */
+.api-connecting-banner {
+  position: fixed;
+  inset-block-start: var(--sp-4);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 9400;
+  background: var(--c-text);
+  color: var(--c-text-inverse);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  padding: var(--sp-2) var(--sp-5);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: connecting-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes connecting-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
 /* ── Sync indicator ─────────────────────────────────────────────────────────── */
 .sync-indicator {
   display: inline-flex;
@@ -648,4 +674,259 @@ input:focus, textarea:focus, select:focus {
   color: var(--c-text-muted);
   max-width: 260px;
   line-height: var(--lh-relaxed);
+}
+
+/* ── Auth screens ───────────────────────────────────────────────────────────── */
+/* Login and password-change screens rendered by auth.js                        */
+
+.auth-screen {
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-bg);
+  padding: var(--sp-4);
+  position: relative;
+}
+
+/* Top bar — spans the full width; back button at start, lang toggle at end */
+.auth-top-bar {
+  position: absolute;
+  inset-block-start: var(--sp-3);
+  inset-inline-start: var(--sp-3);
+  inset-inline-end: var(--sp-3);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+.auth-lang-btn,
+.auth-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--c-text-secondary);
+  background: transparent;
+  border: none;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+  line-height: 1;
+}
+.auth-lang-btn:hover,
+.auth-back-btn:hover {
+  background: var(--c-surface-hover);
+  color: var(--c-text);
+}
+
+/* Push the lang button to the inline-end of the bar (works with 0 or 1 back buttons) */
+.auth-lang-btn {
+  margin-inline-start: auto;
+}
+
+/* ── Card ── */
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--c-surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  animation: _auth-enter var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes _auth-enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ── Branded header strip ── */
+.auth-card-header {
+  background: var(--c-primary);
+  padding: var(--sp-8) var(--sp-6) var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  text-align: center;
+}
+
+/* Password-change variant — slightly deeper blue to signal required action */
+.auth-card-header-change {
+  background: var(--c-primary-hover);
+}
+
+.auth-logo-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-xl);
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-block-end: var(--sp-1);
+  flex-shrink: 0;
+}
+
+.auth-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+/* Shown when logo.svg fails to load */
+.auth-logo-abbr {
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
+  color: white;
+  letter-spacing: 0.06em;
+}
+
+.auth-lock-icon {
+  color: rgba(255, 255, 255, 0.9);
+  margin-block-end: var(--sp-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-app-name {
+  font-size: var(--text-md);
+  font-weight: var(--fw-semi);
+  color: white;
+  line-height: var(--lh-tight);
+}
+
+.auth-app-tagline {
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.72);
+  line-height: var(--lh-snug);
+}
+
+/* ── Card body (form area) ── */
+.auth-card-body {
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-block-end: var(--sp-2);
+}
+
+/* ── Inline error ── */
+.auth-error {
+  background: var(--c-absent-bg);
+  border: 1px solid var(--c-absent-border);
+  color: var(--c-absent);
+  font-size: var(--text-sm);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  line-height: var(--lh-snug);
+  margin-block-end: var(--sp-3);
+}
+.auth-error[hidden] { display: none; }
+
+/* ── Password input + eye toggle ── */
+.auth-input-wrap {
+  position: relative;
+}
+.auth-input-wrap .field-input {
+  padding-inline-end: 2.75rem;
+  width: 100%;
+}
+.auth-pw-input {
+  letter-spacing: 0.05em; /* tiny spacing improves masked password readability */
+}
+
+.auth-eye-btn {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: var(--sp-3);
+  transform: translateY(-50%);
+  color: var(--c-text-muted);
+  background: transparent;
+  border: none;
+  padding: var(--sp-1);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color var(--dur-fast), background var(--dur-fast);
+}
+.auth-eye-btn:hover {
+  color: var(--c-text-secondary);
+  background: var(--c-surface-hover);
+}
+
+/* ── Submit button ── */
+.auth-submit {
+  width: 100%;
+  padding-block: var(--sp-3);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semi);
+  letter-spacing: 0.02em;
+  margin-block-start: var(--sp-1);
+}
+
+/* ── Footer ── */
+.auth-footer {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  text-align: center;
+  margin-block-start: var(--sp-5);
+}
+
+/* ── Password requirements (change-password screen) ── */
+.auth-requirements {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0 var(--sp-3);
+}
+
+.auth-requirement {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  color: var(--c-text-muted);
+  line-height: var(--lh-tight);
+  transition: color var(--dur-base);
+}
+
+.auth-requirement.met {
+  color: var(--c-present);
+}
+
+/* Dot indicator — filled when requirement is met */
+.auth-req-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--c-border-strong);
+  flex-shrink: 0;
+  transition: background var(--dur-base);
+}
+
+.auth-requirement.met .auth-req-dot {
+  background: var(--c-present);
+}
+
+/* ── Tight screens ── */
+@media (max-width: 400px) {
+  .auth-card       { border-radius: var(--r-lg); }
+  .auth-card-header { padding: var(--sp-6) var(--sp-5) var(--sp-5); }
+  .auth-card-body  { padding: var(--sp-5); }
 }

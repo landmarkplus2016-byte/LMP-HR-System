@@ -1,0 +1,375 @@
+{
+  "app": {
+    "name": "LMP Attendance",
+    "tagline": "Employee Attendance System"
+  },
+
+  "login": {
+    "title": "Sign In",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Sign In",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
+    "back": "Back",
+    "back_to_login": "Back to sign in"
+  },
+
+  "change_pw": {
+    "title": "Change Password",
+    "required": "Password change required before continuing",
+    "new": "New password",
+    "confirm": "Confirm password",
+    "requirements_label": "Password requirements",
+    "req_length": "8 characters minimum",
+    "req_match": "Passwords match",
+    "submit": "Change Password"
+  },
+
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "live_status": "Live Status",
+    "attendance": "Attendance",
+    "leave_requests": "Leave Requests",
+    "reports": "Reports",
+    "employees": "Employees",
+    "departments": "Departments",
+    "shifts": "Shifts",
+    "locations": "Locations",
+    "holidays": "Holidays",
+    "config": "Settings",
+    "history": "My Records",
+    "leave": "Request Leave",
+    "team": "My Team",
+    "signout": "Sign Out",
+    "toggle_language": "Toggle language"
+  },
+
+  "loading": {
+    "starting": "Loading…",
+    "config": "Loading settings…",
+    "validating": "Validating session…",
+    "verifying": "Verifying…",
+    "please_wait": "Please wait…"
+  },
+
+  "api": {
+    "connecting": "Connecting to server…"
+  },
+
+  "setup": {
+    "title": "Server Setup",
+    "description": "Enter your Apps Script Web App URL",
+    "url_placeholder": "https://script.google.com/macros/s/…/exec",
+    "url_required": "Please enter the server URL",
+    "url_invalid": "URL must start with https://script.google.com",
+    "save": "Save"
+  },
+
+  "checkin": {
+    "title": "Check In",
+    "button": "Check In",
+    "verifying_location": "Verifying location…",
+    "verifying_fingerprint": "Verifying fingerprint…",
+    "success": "Checked in successfully",
+    "success_at": "Checked in at {time} from {location}",
+    "already_checked_in": "You have already checked in today",
+    "outside_range": "You are not at a company location",
+    "pending_sync": "Pending sync",
+    "shift": "Shift",
+    "shift_start": "Shift start",
+    "shift_end": "Shift end"
+  },
+
+  "checkout": {
+    "button": "Check Out",
+    "success": "Checked out successfully",
+    "success_at": "Checked out at {time}",
+    "not_checked_in": "You have not checked in yet",
+    "hours_worked": "Hours worked"
+  },
+
+  "attendance": {
+    "title": "Attendance",
+    "my_title": "My Attendance",
+    "date": "Date",
+    "employee": "Employee",
+    "check_in": "Check-in",
+    "check_out": "Check-out",
+    "hours": "Hours",
+    "location": "Location",
+    "status": "Status",
+    "notes": "Notes",
+    "corrected_by": "Corrected by",
+    "no_records": "No records found",
+    "filter_date": "Filter by date",
+    "filter_employee": "Filter by employee",
+    "correct": "Correct",
+    "add_manual": "Add manual",
+    "flagged": "Flagged records",
+    "hr_note": "HR note"
+  },
+
+  "leave": {
+    "title": "Leave Requests",
+    "my_title": "My Leaves",
+    "request": "Request Leave",
+    "type": "Leave type",
+    "type_annual": "Annual leave",
+    "type_sick": "Sick leave",
+    "type_emergency": "Emergency leave",
+    "type_unpaid": "Unpaid leave",
+    "start_date": "Start date",
+    "end_date": "End date",
+    "reason": "Reason",
+    "balance": "Leave balance",
+    "days_remaining": "{days} days remaining",
+    "submit": "Submit request",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "no_requests": "No leave requests"
+  },
+
+  "team": {
+    "title": "My Team",
+    "status_today": "Team status today",
+    "no_members": "No team members found",
+    "present_count": "Present",
+    "absent_count": "Absent",
+    "late_count": "Late",
+    "leave_count": "On Leave"
+  },
+
+  "hr": {
+    "dashboard_title": "Dashboard",
+    "total_employees": "Total employees",
+    "present_today": "Present today",
+    "absent_today": "Absent today",
+    "on_leave": "On leave",
+    "late_today": "Late today",
+    "recent_activity": "Recent activity"
+  },
+
+  "employees": {
+    "title": "Employee Management",
+    "add": "Add employee",
+    "edit": "Edit employee",
+    "name": "Name",
+    "username": "Username",
+    "department": "Department",
+    "shift": "Shift",
+    "role": "Role",
+    "role_employee": "Employee",
+    "role_manager": "Manager",
+    "role_hr": "HR Manager",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "biometric_exempt": "Biometric exempt",
+    "temp_password": "Temporary password",
+    "no_employees": "No employees found",
+    "search": "Search employees"
+  },
+
+  "locations": {
+    "title": "Location Management",
+    "add": "Add location",
+    "edit": "Edit location",
+    "name": "Location name",
+    "lat": "Latitude",
+    "lng": "Longitude",
+    "radius": "Geofence radius (m)",
+    "active": "Active",
+    "inactive": "Inactive",
+    "toggle_active": "Toggle active",
+    "no_locations": "No locations found"
+  },
+
+  "shifts": {
+    "title": "Shift Management",
+    "add": "Add shift",
+    "edit": "Edit shift",
+    "name": "Shift name",
+    "start_time": "Start time",
+    "end_time": "End time",
+    "working_days": "Working days",
+    "late_threshold": "Late threshold (min)",
+    "no_shifts": "No shifts found"
+  },
+
+  "departments": {
+    "title": "Department Management",
+    "add": "Add department",
+    "edit": "Edit department",
+    "name": "Department name",
+    "default_shift": "Default shift",
+    "employee_count": "Employees",
+    "no_departments": "No departments found"
+  },
+
+  "holidays": {
+    "title": "Public Holidays",
+    "add": "Add holiday",
+    "date": "Date",
+    "name": "Holiday name",
+    "no_holidays": "No holidays found"
+  },
+
+  "config": {
+    "title": "App Settings",
+    "app_name": "App name",
+    "company_name": "Company name",
+    "geofence_radius": "Geofence radius (m)",
+    "late_threshold": "Late threshold (min)",
+    "gps_accuracy_max": "Max GPS accuracy (m)",
+    "session_expiry": "Session duration (hours)",
+    "auto_checkout": "Auto checkout",
+    "offline_sync": "Offline sync",
+    "primary_language": "Default language",
+    "working_days": "Working days",
+    "biometric_required": "Biometric required",
+    "save": "Save settings"
+  },
+
+  "reports": {
+    "title": "Reports",
+    "monthly": "Monthly Report",
+    "select_month": "Select month",
+    "select_year": "Select year",
+    "select_department": "Select department (optional)",
+    "all_departments": "All departments",
+    "generate": "Generate report",
+    "download": "Download Excel",
+    "generating": "Generating report…",
+    "no_data": "No data for this period",
+    "col_name": "Name",
+    "col_department": "Department",
+    "col_total_present": "Total Present",
+    "col_total_absent": "Total Absent",
+    "col_total_late": "Total Late",
+    "col_total_hours": "Total Hours",
+    "col_leave_days": "Leave Days"
+  },
+
+  "status": {
+    "present": "Present",
+    "absent": "Absent",
+    "late": "Late",
+    "on_leave": "On Leave",
+    "holiday": "Holiday",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+
+  "action": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "add": "Add",
+    "delete": "Delete",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "approve": "Approve",
+    "reject": "Reject",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "loading": "Loading…",
+    "retry": "Retry"
+  },
+
+  "error": {
+    "username_required": "Please enter your username",
+    "password_required": "Please enter your password",
+    "invalid_credentials": "Invalid username or password",
+    "account_inactive": "Account is inactive",
+    "session_expired": "Session expired. Please sign in again.",
+    "network": "Connection error. Please try again.",
+    "server": "Server error. Please try again.",
+    "pw_too_short": "Password must be at least 8 characters",
+    "pw_mismatch": "Passwords do not match",
+    "change_pw_failed": "Password change failed",
+    "unauthorized": "Access denied",
+    "not_found": "Record not found",
+    "required_field": "This field is required",
+    "invalid_date": "Invalid date"
+  },
+
+  "gps": {
+    "denied": "Location permission denied. Please enable it in device settings.",
+    "weak": "GPS signal is weak. Move to an open area and try again.",
+    "fake_detected": "Mock location detected. Cannot check in.",
+    "outside_range": "You are not at a company location.",
+    "locating": "Locating…",
+    "accuracy_label": "Signal accuracy"
+  },
+
+  "biometric": {
+    "prompt": "Place your finger on the fingerprint sensor",
+    "failed": "Fingerprint verification failed. Try again.",
+    "locked": "Fingerprint locked. Please wait a moment.",
+    "not_registered": "Fingerprint not registered on this device",
+    "register_prompt": "Register your fingerprint to continue",
+    "registering": "Registering fingerprint…",
+    "register_success": "Fingerprint registered successfully",
+    "register_failed": "Fingerprint registration failed. Try again.",
+    "not_supported": "Your device does not support fingerprint authentication",
+    "verifying": "Verifying fingerprint…"
+  },
+
+  "sync": {
+    "pending": "Pending sync",
+    "syncing": "Syncing…",
+    "complete": "Synced",
+    "error": "Sync failed",
+    "failed_records": "Records failed to send"
+  },
+
+  "offline": {
+    "banner": "You are offline — data will sync when connection is restored",
+    "queued": "Request saved and will be sent when connected"
+  },
+
+  "update": {
+    "available": "Update available — tap to update"
+  },
+
+  "placeholder": {
+    "building": "Under Construction",
+    "no_data": "No data found",
+    "loading": "Loading…"
+  },
+
+  "date": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "this_week": "This week",
+    "this_month": "This month",
+    "from": "From",
+    "to": "To",
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday",
+    "sun": "Sunday"
+  },
+
+  "time": {
+    "am": "AM",
+    "pm": "PM",
+    "hours": "hours",
+    "minutes": "minutes"
+  }
+}

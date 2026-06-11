@@ -1,0 +1,375 @@
+{
+  "app": {
+    "name": "LMP Attendance",
+    "tagline": "نظام متابعة الحضور والانصراف"
+  },
+
+  "login": {
+    "title": "تسجيل الدخول",
+    "username": "اسم المستخدم",
+    "password": "كلمة المرور",
+    "submit": "تسجيل الدخول",
+    "show_password": "إظهار كلمة المرور",
+    "hide_password": "إخفاء كلمة المرور",
+    "back": "العودة",
+    "back_to_login": "العودة إلى تسجيل الدخول"
+  },
+
+  "change_pw": {
+    "title": "تغيير كلمة المرور",
+    "required": "يجب تغيير كلمة المرور قبل المتابعة",
+    "new": "كلمة المرور الجديدة",
+    "confirm": "تأكيد كلمة المرور",
+    "requirements_label": "متطلبات كلمة المرور",
+    "req_length": "٨ أحرف على الأقل",
+    "req_match": "كلمتا المرور متطابقتان",
+    "submit": "تغيير كلمة المرور"
+  },
+
+  "nav": {
+    "home": "الرئيسية",
+    "dashboard": "لوحة التحكم",
+    "live_status": "الحضور المباشر",
+    "attendance": "سجل الحضور",
+    "leave_requests": "طلبات الإجازة",
+    "reports": "التقارير",
+    "employees": "الموظفون",
+    "departments": "الأقسام",
+    "shifts": "الورديات",
+    "locations": "المواقع",
+    "holidays": "الإجازات الرسمية",
+    "config": "الإعدادات",
+    "history": "سجلّاتي",
+    "leave": "طلب إجازة",
+    "team": "فريقي",
+    "signout": "تسجيل الخروج",
+    "toggle_language": "تبديل اللغة"
+  },
+
+  "loading": {
+    "starting": "جارٍ التحميل…",
+    "config": "تحميل الإعدادات…",
+    "validating": "التحقق من الجلسة…",
+    "verifying": "جارٍ التحقق…",
+    "please_wait": "يرجى الانتظار…"
+  },
+
+  "api": {
+    "connecting": "جارٍ الاتصال بالخادم…"
+  },
+
+  "setup": {
+    "title": "إعداد الخادم",
+    "description": "أدخل رابط Apps Script الخاص بالمشروع",
+    "url_placeholder": "https://script.google.com/macros/s/…/exec",
+    "url_required": "الرجاء إدخال رابط الخادم",
+    "url_invalid": "الرابط يجب أن يبدأ بـ https://script.google.com",
+    "save": "حفظ"
+  },
+
+  "checkin": {
+    "title": "تسجيل الحضور",
+    "button": "تسجيل الحضور",
+    "verifying_location": "جارٍ التحقق من الموقع…",
+    "verifying_fingerprint": "جارٍ التحقق من البصمة…",
+    "success": "تم تسجيل الحضور",
+    "success_at": "تم تسجيل حضورك في {time} من {location}",
+    "already_checked_in": "لقد سجّلت حضورك اليوم بالفعل",
+    "outside_range": "أنت خارج نطاق الموقع المسموح به",
+    "pending_sync": "في انتظار المزامنة",
+    "shift": "الوردية",
+    "shift_start": "بداية الوردية",
+    "shift_end": "نهاية الوردية"
+  },
+
+  "checkout": {
+    "button": "تسجيل الانصراف",
+    "success": "تم تسجيل الانصراف",
+    "success_at": "تم تسجيل انصرافك في {time}",
+    "not_checked_in": "لم تسجّل حضورك بعد",
+    "hours_worked": "ساعات العمل"
+  },
+
+  "attendance": {
+    "title": "سجل الحضور",
+    "my_title": "سجلّاتي",
+    "date": "التاريخ",
+    "employee": "الموظف",
+    "check_in": "وقت الحضور",
+    "check_out": "وقت الانصراف",
+    "hours": "الساعات",
+    "location": "الموقع",
+    "status": "الحالة",
+    "notes": "ملاحظات",
+    "corrected_by": "صُحِّح بواسطة",
+    "no_records": "لا توجد سجلات",
+    "filter_date": "تصفية حسب التاريخ",
+    "filter_employee": "تصفية حسب الموظف",
+    "correct": "تصحيح",
+    "add_manual": "إضافة يدوية",
+    "flagged": "سجلات مُبلَّغ عنها",
+    "hr_note": "ملاحظة المسؤول"
+  },
+
+  "leave": {
+    "title": "طلبات الإجازة",
+    "my_title": "إجازاتي",
+    "request": "طلب إجازة",
+    "type": "نوع الإجازة",
+    "type_annual": "إجازة سنوية",
+    "type_sick": "إجازة مرضية",
+    "type_emergency": "إجازة طارئة",
+    "type_unpaid": "إجازة بدون راتب",
+    "start_date": "تاريخ البداية",
+    "end_date": "تاريخ النهاية",
+    "reason": "سبب الإجازة",
+    "balance": "رصيد الإجازات",
+    "days_remaining": "{days} يوم متبقٍّ",
+    "submit": "إرسال الطلب",
+    "pending": "قيد الانتظار",
+    "approved": "موافق عليها",
+    "rejected": "مرفوضة",
+    "no_requests": "لا توجد طلبات إجازة"
+  },
+
+  "team": {
+    "title": "فريقي",
+    "status_today": "حالة الفريق اليوم",
+    "no_members": "لا يوجد أعضاء في الفريق",
+    "present_count": "حاضر",
+    "absent_count": "غائب",
+    "late_count": "متأخر",
+    "leave_count": "في إجازة"
+  },
+
+  "hr": {
+    "dashboard_title": "لوحة التحكم",
+    "total_employees": "إجمالي الموظفين",
+    "present_today": "الحاضرون اليوم",
+    "absent_today": "الغائبون اليوم",
+    "on_leave": "في إجازة",
+    "late_today": "المتأخرون",
+    "recent_activity": "آخر الأنشطة"
+  },
+
+  "employees": {
+    "title": "إدارة الموظفين",
+    "add": "إضافة موظف",
+    "edit": "تعديل بيانات الموظف",
+    "name": "الاسم",
+    "username": "اسم المستخدم",
+    "department": "القسم",
+    "shift": "الوردية",
+    "role": "الدور الوظيفي",
+    "role_employee": "موظف",
+    "role_manager": "مدير",
+    "role_hr": "مدير الموارد البشرية",
+    "status": "الحالة",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "deactivate": "تعطيل الحساب",
+    "reactivate": "تفعيل الحساب",
+    "biometric_exempt": "معفى من البصمة",
+    "temp_password": "كلمة مرور مؤقتة",
+    "no_employees": "لا يوجد موظفون",
+    "search": "البحث عن موظف"
+  },
+
+  "locations": {
+    "title": "إدارة المواقع",
+    "add": "إضافة موقع",
+    "edit": "تعديل الموقع",
+    "name": "اسم الموقع",
+    "lat": "خط العرض",
+    "lng": "خط الطول",
+    "radius": "نطاق الجيوفنس (متر)",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "toggle_active": "تفعيل / تعطيل",
+    "no_locations": "لا توجد مواقع"
+  },
+
+  "shifts": {
+    "title": "إدارة الورديات",
+    "add": "إضافة وردية",
+    "edit": "تعديل الوردية",
+    "name": "اسم الوردية",
+    "start_time": "وقت البداية",
+    "end_time": "وقت النهاية",
+    "working_days": "أيام العمل",
+    "late_threshold": "حد التأخير (دقيقة)",
+    "no_shifts": "لا توجد ورديات"
+  },
+
+  "departments": {
+    "title": "إدارة الأقسام",
+    "add": "إضافة قسم",
+    "edit": "تعديل القسم",
+    "name": "اسم القسم",
+    "default_shift": "الوردية الافتراضية",
+    "employee_count": "عدد الموظفين",
+    "no_departments": "لا توجد أقسام"
+  },
+
+  "holidays": {
+    "title": "الإجازات الرسمية",
+    "add": "إضافة إجازة رسمية",
+    "date": "التاريخ",
+    "name": "اسم الإجازة",
+    "no_holidays": "لا توجد إجازات رسمية"
+  },
+
+  "config": {
+    "title": "إعدادات التطبيق",
+    "app_name": "اسم التطبيق",
+    "company_name": "اسم الشركة",
+    "geofence_radius": "نطاق الجيوفنس (متر)",
+    "late_threshold": "حد التأخير (دقيقة)",
+    "gps_accuracy_max": "أقصى دقة GPS مقبولة (متر)",
+    "session_expiry": "مدة الجلسة (ساعات)",
+    "auto_checkout": "تسجيل انصراف تلقائي",
+    "offline_sync": "المزامنة عند انقطاع الاتصال",
+    "primary_language": "اللغة الافتراضية",
+    "working_days": "أيام العمل",
+    "biometric_required": "البصمة مطلوبة",
+    "save": "حفظ الإعدادات"
+  },
+
+  "reports": {
+    "title": "التقارير",
+    "monthly": "التقرير الشهري",
+    "select_month": "اختر الشهر",
+    "select_year": "اختر السنة",
+    "select_department": "اختر القسم (اختياري)",
+    "all_departments": "جميع الأقسام",
+    "generate": "إنشاء التقرير",
+    "download": "تحميل Excel",
+    "generating": "جارٍ إنشاء التقرير…",
+    "no_data": "لا توجد بيانات لهذه الفترة",
+    "col_name": "الاسم",
+    "col_department": "القسم",
+    "col_total_present": "إجمالي الحضور",
+    "col_total_absent": "إجمالي الغياب",
+    "col_total_late": "إجمالي التأخير",
+    "col_total_hours": "إجمالي الساعات",
+    "col_leave_days": "أيام الإجازة"
+  },
+
+  "status": {
+    "present": "حاضر",
+    "absent": "غائب",
+    "late": "متأخر",
+    "on_leave": "في إجازة",
+    "holiday": "عطلة رسمية",
+    "pending": "قيد الانتظار",
+    "approved": "موافق عليه",
+    "rejected": "مرفوض",
+    "active": "نشط",
+    "inactive": "غير نشط"
+  },
+
+  "action": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "delete": "حذف",
+    "deactivate": "تعطيل",
+    "reactivate": "تفعيل",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "search": "بحث",
+    "filter": "تصفية",
+    "export": "تصدير",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "back": "عودة",
+    "loading": "جارٍ التحميل…",
+    "retry": "إعادة المحاولة"
+  },
+
+  "error": {
+    "username_required": "الرجاء إدخال اسم المستخدم",
+    "password_required": "الرجاء إدخال كلمة المرور",
+    "invalid_credentials": "بيانات الدخول غير صحيحة",
+    "account_inactive": "الحساب غير نشط",
+    "session_expired": "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً",
+    "network": "خطأ في الاتصال. حاول مجدداً.",
+    "server": "خطأ في الخادم. حاول مجدداً.",
+    "pw_too_short": "كلمة المرور يجب أن تكون ٨ أحرف على الأقل",
+    "pw_mismatch": "كلمتا المرور غير متطابقتين",
+    "change_pw_failed": "فشل تغيير كلمة المرور",
+    "unauthorized": "غير مخوّل للوصول",
+    "not_found": "البيانات غير موجودة",
+    "required_field": "هذا الحقل مطلوب",
+    "invalid_date": "تاريخ غير صالح"
+  },
+
+  "gps": {
+    "denied": "تم رفض إذن الموقع. يرجى تفعيله من إعدادات الجهاز.",
+    "weak": "دقة GPS ضعيفة. انتقل إلى مكان مكشوف وحاول مجدداً.",
+    "fake_detected": "تم اكتشاف موقع مزيّف. لا يمكن تسجيل الحضور.",
+    "outside_range": "أنت خارج نطاق الموقع المسموح به.",
+    "locating": "جارٍ تحديد الموقع…",
+    "accuracy_label": "دقة الإشارة"
+  },
+
+  "biometric": {
+    "prompt": "ضع إصبعك على مستشعر البصمة",
+    "failed": "فشل التحقق من البصمة. حاول مجدداً.",
+    "locked": "تم تجميد البصمة. حاول بعد قليل.",
+    "not_registered": "البصمة غير مسجّلة على هذا الجهاز",
+    "register_prompt": "سجّل بصمتك للاستمرار",
+    "registering": "جارٍ تسجيل البصمة…",
+    "register_success": "تم تسجيل البصمة بنجاح",
+    "register_failed": "فشل تسجيل البصمة. حاول مجدداً.",
+    "not_supported": "جهازك لا يدعم بصمة الإصبع",
+    "verifying": "جارٍ التحقق من البصمة…"
+  },
+
+  "sync": {
+    "pending": "في انتظار المزامنة",
+    "syncing": "جارٍ المزامنة…",
+    "complete": "تمت المزامنة",
+    "error": "فشلت المزامنة",
+    "failed_records": "سجلات فشل إرسالها"
+  },
+
+  "offline": {
+    "banner": "أنت غير متصل بالإنترنت — سيتم مزامنة البيانات عند عودة الاتصال",
+    "queued": "تم حفظ الطلب وسيُرسل عند الاتصال"
+  },
+
+  "update": {
+    "available": "تحديث متاح — اضغط للتحديث"
+  },
+
+  "placeholder": {
+    "building": "قيد الإنشاء",
+    "no_data": "لا توجد بيانات",
+    "loading": "جارٍ التحميل…"
+  },
+
+  "date": {
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "this_week": "هذا الأسبوع",
+    "this_month": "هذا الشهر",
+    "from": "من",
+    "to": "إلى",
+    "mon": "الاثنين",
+    "tue": "الثلاثاء",
+    "wed": "الأربعاء",
+    "thu": "الخميس",
+    "fri": "الجمعة",
+    "sat": "السبت",
+    "sun": "الأحد"
+  },
+
+  "time": {
+    "am": "ص",
+    "pm": "م",
+    "hours": "ساعة",
+    "minutes": "دقيقة"
+  }
+}

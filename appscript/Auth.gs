@@ -183,6 +183,18 @@ function getConfig(payload) {
 }
 
 // ---------------------------------------------------------------------------
+// getProfile  (requires valid session)
+// ---------------------------------------------------------------------------
+// Lightweight session check used by the PWA on startup.
+// Returns the validated employee profile so the app can restore its state
+// without the employee having to log in again.
+function getProfile(payload) {
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+  return ok({ employee: safeEmployee(auth.employee) });
+}
+
+// ---------------------------------------------------------------------------
 // safeEmployee  (private helper)
 // ---------------------------------------------------------------------------
 // Strips fields that must never leave the server before returning to client.

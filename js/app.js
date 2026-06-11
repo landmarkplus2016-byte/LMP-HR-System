@@ -131,6 +131,11 @@ const VIEW_RENDER = {
 document.addEventListener('DOMContentLoaded', () => App.init());
 
 App.init = async function () {
+  // 0. Load locale strings — must be first so t() returns real strings below
+  if (typeof loadI18n === 'function') {
+    await loadI18n();
+  }
+
   setLoadingStatus(t('loading.starting') || 'جارٍ التحميل…');
 
   // 1. Load config from Apps Script (non-fatal)
@@ -143,13 +148,7 @@ App.init = async function () {
     console.warn('[App] Config load failed — using fallbacks.', e.message);
   }
 
-  // 2. Apply stored language preference before rendering anything
-  if (typeof setLanguage === 'function') {
-    const lang = localStorage.getItem('lmp_lang') || 'ar';
-    setLanguage(lang);
-  }
-
-  // 3. Check stored session
+  // 2. Check stored session
   const token   = localStorage.getItem('lmp_session');
   const userRaw = localStorage.getItem('lmp_user');
 
@@ -159,7 +158,7 @@ App.init = async function () {
     return;
   }
 
-  // 4. Validate the stored session with the server
+  // 3. Validate the stored session with the server
   try {
     if (typeof apiValidateSession === 'function') {
       setLoadingStatus(t('loading.validating') || 'التحقق من الجلسة…');
@@ -184,7 +183,7 @@ App.init = async function () {
     console.warn('[App] Session validation failed.', e.message);
   }
 
-  // 5. Session invalid — clear and show login
+  // 4. Session invalid — clear and show login
   _clearSession();
   hideLoadingScreen();
   renderLoginView();

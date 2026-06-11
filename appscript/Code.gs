@@ -63,6 +63,7 @@ function route(action, payload) {
     case 'change_password':              return changePassword(payload);
     case 'logout':                       return logout(payload);
     case 'get_config':                   return getConfig(payload);
+    case 'get_profile':                  return getProfile(payload);   // session validation + profile
 
     // ── WebAuthn (Stage 2) ────────────────────────────────────────────────
     case 'webauthn_register_challenge':  return webauthnRegisterChallenge(payload);
