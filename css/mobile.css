@@ -267,6 +267,284 @@
 
 .bio-reg-btn { min-width: 160px; }
 
+/* ── Employee: attendance history list ──────────────────────────────────────── */
+
+.att-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: 0;
+}
+
+.att-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur-fast);
+}
+
+.att-row-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.att-date {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semi);
+  color: var(--c-text);
+  /* Dates are always LTR regardless of UI language */
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: embed;
+}
+
+.att-hours {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+}
+
+.att-row-times {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.att-time-in,
+.att-time-out {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+.att-time-in  { color: var(--c-present); }
+.att-time-out { color: var(--c-text-muted); }
+
+.att-row-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Empty / error state inside a list */
+.emp-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-12) var(--sp-8);
+  text-align: center;
+  list-style: none;
+}
+
+.emp-empty-icon { font-size: 2.5rem; line-height: 1; opacity: 0.35; }
+
+.emp-empty-msg {
+  font-size: var(--text-sm);
+  color: var(--c-text-muted);
+}
+
+/* ── Employee: leave request form ───────────────────────────────────────────── */
+
+.leave-balance-link {
+  font-size: var(--text-xs);
+  color: var(--c-primary);
+  white-space: nowrap;
+}
+
+.leave-form-card {
+  margin-block-end: var(--sp-5);
+}
+
+.leave-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.leave-dates-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+.leave-reason-input {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.leave-form-error {
+  background: var(--c-absent-bg);
+  border: 1px solid var(--c-absent-border);
+  color: var(--c-absent);
+  font-size: var(--text-sm);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  line-height: var(--lh-snug);
+}
+.leave-form-error[hidden] { display: none; }
+
+.leave-submit-btn {
+  width: 100%;
+  padding-block: var(--sp-3);
+  font-weight: var(--fw-semi);
+}
+
+/* Success confirmation (replaces form card content on submit) */
+.leave-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-8) var(--sp-4);
+  text-align: center;
+}
+
+.leave-success-icon { color: var(--c-present); }
+
+.leave-success-msg {
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  color: var(--c-present);
+}
+
+/* Section header above leave history lists */
+.leave-section-title {
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semi);
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-block-end: var(--sp-3);
+}
+
+.leave-history-section {
+  margin-block-start: var(--sp-2);
+}
+
+.leave-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: 0;
+}
+
+.leave-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--shadow-xs);
+}
+
+.leave-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.leave-row-type {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semi);
+  color: var(--c-text);
+}
+
+.leave-row-dates {
+  font-size: var(--text-xs);
+  color: var(--c-text-secondary);
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: embed;
+}
+
+.leave-row-reason {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Back button inside leave-balance header */
+.leave-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* ── Employee: leave balance cards ──────────────────────────────────────────── */
+
+.balance-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-3);
+  margin-block-end: var(--sp-5);
+}
+
+.balance-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4) var(--sp-3);
+  text-align: center;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.balance-card-primary {
+  background: var(--c-primary-dim);
+  border-color: var(--c-primary-mid);
+}
+
+.balance-card-pending {
+  background: var(--c-pending-bg);
+  border-color: var(--c-pending-border);
+}
+
+.balance-card-num {
+  font-size: var(--text-2xl);
+  font-weight: var(--fw-bold);
+  color: var(--c-text);
+  line-height: 1;
+}
+
+.balance-card-primary .balance-card-num { color: var(--c-primary); }
+.balance-card-pending .balance-card-num { color: var(--c-pending); }
+
+.balance-card-label {
+  font-size: var(--text-xs);
+  color: var(--c-text-secondary);
+  line-height: var(--lh-snug);
+}
+
+.balance-error {
+  font-size: var(--text-sm);
+  color: var(--c-absent);
+  text-align: center;
+  padding: var(--sp-4);
+}
+
 /* ── Mobile view padding ────────────────────────────────────────────────────── */
 @media (max-width: 899px) {
   #app {

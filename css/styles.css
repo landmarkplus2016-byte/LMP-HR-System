@@ -577,7 +577,7 @@ input:focus, textarea:focus, select:focus {
   50%       { opacity: 0.65; }
 }
 
-/* ── Sync indicator ─────────────────────────────────────────────────────────── */
+/* ── Sync indicator (inline badge, used inside view headers) ────────────────── */
 .sync-indicator {
   display: inline-flex;
   align-items: center;
@@ -592,6 +592,101 @@ input:focus, textarea:focus, select:focus {
 .sync-pending { color: var(--c-late); }
 .sync-synced  { color: var(--c-present); }
 .sync-error   { color: var(--c-absent); }
+
+/* ── Offline sync status bar (injected by offline.js) ──────────────────────── */
+/* Fixed pill above the bottom nav (or top of screen on desktop).              */
+.sync-bar {
+  position: fixed;
+  inset-block-end: calc(var(--nav-h) + var(--sp-3));
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 9200;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-full);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+  transition: opacity var(--dur-base) var(--ease-out),
+              transform var(--dur-base) var(--ease-out);
+}
+
+.sync-bar-hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px);
+  pointer-events: none;
+}
+
+.sync-bar-pending {
+  background: var(--c-late-bg);
+  color: var(--c-late);
+  border: 1px solid var(--c-late-border);
+}
+
+.sync-bar-synced {
+  background: var(--c-present-bg);
+  color: var(--c-present);
+  border: 1px solid var(--c-present-border);
+}
+
+/* On desktop the bottom nav is hidden; reposition bar to the top */
+@media (min-width: 900px) {
+  .sync-bar {
+    inset-block-end: auto;
+    inset-block-start: var(--sp-4);
+  }
+}
+
+/* ── App update banner (injected by offline.js showUpdateBanner) ────────────── */
+.update-banner {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  z-index: 9300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--c-primary);
+  color: var(--c-text-inverse);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  box-shadow: var(--shadow-lg);
+  animation: _update-slide-in var(--dur-slow) var(--ease-out) both;
+}
+
+.update-banner[hidden] { display: none; }
+
+@keyframes _update-slide-in {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+.update-banner-msg {
+  flex: 1;
+  text-align: center;
+}
+
+.update-banner-btn {
+  flex-shrink: 0;
+  padding: var(--sp-1) var(--sp-4);
+  border-radius: var(--r-full);
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--c-text-inverse);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semi);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: background var(--dur-fast);
+  white-space: nowrap;
+}
+
+.update-banner-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
 
 /* ── Overlay / modal backdrop ───────────────────────────────────────────────── */
 .overlay {

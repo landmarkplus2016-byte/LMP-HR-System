@@ -1,9 +1,9 @@
 {
   "name": "LMP Attendance",
-  "short_name": "LMP",
+  "short_name": "LMP Attend",
   "description": "Employee Attendance System — Landmark Plus",
-  "start_url": "/LMP-HR-System/",
-  "scope": "/LMP-HR-System/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#faf9f5",

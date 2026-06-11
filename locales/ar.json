@@ -129,7 +129,10 @@
     "pending": "قيد الانتظار",
     "approved": "موافق عليها",
     "rejected": "مرفوضة",
-    "no_requests": "لا توجد طلبات إجازة"
+    "no_requests": "لا توجد طلبات إجازة",
+    "success_message": "تم إرسال طلب الإجازة بنجاح",
+    "new_request": "طلب جديد",
+    "taken_this_year": "أيام مأخوذة هذا العام"
   },
 
   "team": {
