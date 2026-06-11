@@ -1,0 +1,83 @@
+/* =============================================================================
+   rtl.css — Arabic RTL layout overrides
+   Applied when <html dir="rtl"> (the default state — Arabic is primary).
+   Uses logical CSS properties throughout so styles.css never needs left/right.
+   This file only contains cases where logical properties are insufficient or
+   where a directional visual change is needed beyond property flipping.
+   ============================================================================= */
+
+/* ── Sidebar: flip to the right side in RTL ─────────────────────────────────── */
+@media (min-width: 900px) {
+
+  [dir="rtl"] .nav-sidebar {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    border-inline-end: none;
+    border-inline-start: 1px solid var(--c-border);
+  }
+
+  [dir="rtl"] #app {
+    margin-inline-start: 0;
+    margin-inline-end: var(--sidebar-w);
+  }
+
+}
+
+/* ── Directional icons that imply "forward" ──────────────────────────────────── */
+/* Chevrons and arrows should mirror in RTL so they point the correct direction */
+[dir="rtl"] .icon-chevron-right,
+[dir="rtl"] .icon-arrow-right,
+[dir="rtl"] .icon-back {
+  transform: scaleX(-1);
+}
+
+/* ── Slide-out panels from the correct edge ──────────────────────────────────── */
+.slide-panel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;           /* in RTL this is the left edge */
+  width: min(480px, 100vw);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-xl);
+  z-index: 900;
+  transform: translateX(100%);   /* logical: off-screen to the right */
+  transition: transform var(--dur-slow) var(--ease-out);
+  overflow-y: auto;
+}
+
+[dir="rtl"] .slide-panel {
+  transform: translateX(-100%);  /* off-screen to the left in RTL */
+}
+
+.slide-panel.panel-open {
+  transform: translateX(0);
+}
+
+/* ── Toast: centred, so no directional change needed ─────────────────────────── */
+
+/* ── Input fields that must always be LTR (URLs, phone numbers) ──────────────── */
+[dir="rtl"] input[type="url"],
+[dir="rtl"] input[type="tel"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] .ltr-value {
+  direction: ltr;
+  text-align: start;
+}
+
+/* ── Number / stat values: always LTR regardless of page direction ───────────── */
+[dir="rtl"] .stat-card-value,
+[dir="rtl"] .tabular-num {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+/* ── Table: text alignment follows logical start ─────────────────────────────── */
+[dir="rtl"] .data-table th,
+[dir="rtl"] .data-table td {
+  text-align: start;
+}
+
+/* ── Active tab indicator: flip position ─────────────────────────────────────── */
+/* The ::before pseudo-element on .nav-tab.nav-active uses inset-inline-start + translateX(-50%).
+   translateX flips automatically in RTL via logical equivalents, so no override needed. */

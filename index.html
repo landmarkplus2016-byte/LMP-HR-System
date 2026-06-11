@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LMP Attend">
+  <meta name="description" content="Landmark Plus Employee Attendance">
+  <title>LMP Attendance</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+
+  <!-- Fonts — IBM Plex Sans Arabic + Latin, loaded together -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS must precede app styles so our overrides win -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+  <!-- App CSS — load order is significant -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/rtl.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="css/desktop.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Loading screen — visible on startup, fades out after init
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="loading-screen" role="status" aria-live="polite" aria-label="جارٍ تحميل التطبيق">
+    <div class="loading-inner">
+      <div class="loading-logo-wrap">
+        <img src="assets/logo.svg" alt="Landmark Plus" class="loading-logo" width="72" height="72"
+             onerror="this.style.display='none'">
+        <div class="loading-logo-fallback" aria-hidden="true">LMP</div>
+      </div>
+      <div class="loading-app-name">LMP Attendance</div>
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <p id="loading-status" class="loading-status"></p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       First-run setup — shown when no Apps Script URL is stored.
+       api.js controls visibility; this is the fallback markup.
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="setup-screen" hidden aria-modal="true" role="dialog"
+       aria-labelledby="setup-title">
+    <div class="setup-card">
+      <div class="setup-logo-wrap">
+        <img src="assets/logo.svg" alt="" class="setup-logo" width="48" height="48"
+             aria-hidden="true" onerror="this.style.display='none'">
+      </div>
+      <h1 id="setup-title" class="setup-title">إعداد التطبيق</h1>
+      <p class="setup-description">
+        الصق رابط Google Apps Script الخاص بالشركة لبدء الاستخدام.
+      </p>
+      <label for="setup-url-input" class="setup-label">رابط Apps Script</label>
+      <input id="setup-url-input" type="url" class="setup-input"
+             placeholder="https://script.google.com/macros/s/…"
+             autocomplete="off" spellcheck="false" dir="ltr">
+      <p id="setup-error" class="setup-error" role="alert" hidden></p>
+      <button id="setup-save-btn" class="btn btn-primary setup-btn" type="button">
+        حفظ والمتابعة
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Navigation — populated by app.js renderNav()
+       Becomes .nav-sidebar (desktop) or .nav-bottom (mobile)
+       ═══════════════════════════════════════════════════════════ -->
+  <nav id="nav" aria-label="التنقل الرئيسي"></nav>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Main content — every view renders inside here
+       ═══════════════════════════════════════════════════════════ -->
+  <main id="app"></main>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Toast / snackbar container — positioned by CSS
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       CDN libraries — loaded before app scripts
+       ═══════════════════════════════════════════════════════════ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       App scripts — order reflects runtime dependency graph
+       ═══════════════════════════════════════════════════════════ -->
+  <script src="js/utils.js"></script>
+  <script src="js/security.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/gps.js"></script>
+  <script src="js/biometric.js"></script>
+  <script src="js/offline.js"></script>
+  <script src="js/attendance.js"></script>
+  <script src="js/employee.js"></script>
+  <script src="js/manager.js"></script>
+  <script src="js/report.js"></script>
+  <script src="js/hr.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Service worker registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+
+</body>
+</html>

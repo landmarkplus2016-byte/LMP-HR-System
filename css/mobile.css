@@ -1,0 +1,99 @@
+/* =============================================================================
+   mobile.css — Employee and manager mobile-specific styles
+   Applies to all screen widths; desktop.css overrides at >= 900px.
+   ============================================================================= */
+
+/* ── Bottom tab navigation ──────────────────────────────────────────────────── */
+.nav-bottom {
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  inset-block-end: 0;
+  display: flex;
+  align-items: stretch;
+  height: var(--nav-h);
+  background: var(--c-surface);
+  border-block-start: 1px solid var(--c-border);
+  box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.06);
+  padding-block-end: env(safe-area-inset-bottom, 0);
+}
+
+.nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding-block: var(--sp-2);
+  color: var(--c-text-muted);
+  transition: color var(--dur-fast);
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.nav-tab:active {
+  background: var(--c-primary-dim);
+}
+
+.nav-tab.nav-active {
+  color: var(--c-primary);
+}
+
+.nav-tab-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-tab-icon svg { width: 22px; height: 22px; }
+
+.nav-tab-label {
+  font-size: 10px;
+  font-weight: var(--fw-medium);
+  line-height: 1;
+  text-align: center;
+}
+
+/* Active indicator dot above the active tab */
+.nav-tab.nav-active::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: var(--c-primary);
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+}
+
+/* ── Mobile view padding ────────────────────────────────────────────────────── */
+@media (max-width: 899px) {
+  #app {
+    padding-block-end: var(--nav-h);
+  }
+
+  .view-content {
+    padding: var(--sp-4);
+    max-width: 100%;
+  }
+
+  .view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sp-4);
+    background: var(--c-surface);
+    border-block-end: 1px solid var(--c-border);
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 10;
+  }
+
+  .view-title {
+    font-size: var(--text-md);
+    font-weight: var(--fw-semi);
+  }
+}

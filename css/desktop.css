@@ -1,0 +1,272 @@
+/* =============================================================================
+   desktop.css — HR desktop sidebar layout, data tables, dashboard grid
+   Applies at >= 900px breakpoint. Mobile styles are in mobile.css.
+   ============================================================================= */
+
+@media (min-width: 900px) {
+
+  /* ── Shell layout ─────────────────────────────────────────────────────────── */
+  body {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  #app {
+    flex: 1;
+    min-width: 0;
+    padding-block-end: 0;
+    margin-inline-start: var(--sidebar-w);
+    overflow-y: auto;
+  }
+
+  /* ── Sidebar nav ──────────────────────────────────────────────────────────── */
+  .nav-sidebar {
+    position: fixed;
+    inset-block-start: 0;
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    width: var(--sidebar-w);
+    display: flex;
+    flex-direction: column;
+    background: var(--c-surface);
+    border-inline-end: 1px solid var(--c-border);
+    box-shadow: var(--shadow-sm);
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 100;
+  }
+
+  .nav-sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-5) var(--sp-4);
+    border-block-end: 1px solid var(--c-border);
+    flex-shrink: 0;
+  }
+
+  .nav-logo {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+
+  .nav-app-name {
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semi);
+    color: var(--c-text);
+    line-height: var(--lh-tight);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-sidebar-list {
+    flex: 1;
+    padding: var(--sp-3) var(--sp-2);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--r-md);
+    color: var(--c-text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    transition: background var(--dur-fast), color var(--dur-fast);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .nav-sidebar-item:hover {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+  }
+
+  .nav-sidebar-item.nav-active {
+    background: var(--c-primary-dim);
+    color: var(--c-primary);
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-icon svg { width: 20px; height: 20px; }
+
+  .nav-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-sidebar-footer {
+    padding: var(--sp-3) var(--sp-2);
+    border-block-start: 1px solid var(--c-border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .nav-lang-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--r-md);
+    color: var(--c-text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    width: 100%;
+    text-align: start;
+    transition: background var(--dur-fast), color var(--dur-fast);
+  }
+
+  .nav-lang-toggle:hover {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+  }
+
+  .nav-signout {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--r-md);
+    color: var(--c-text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    width: 100%;
+    text-align: start;
+    transition: background var(--dur-fast), color var(--dur-fast);
+  }
+
+  .nav-signout:hover {
+    background: var(--c-absent-bg);
+    color: var(--c-absent);
+  }
+
+  /* ── Desktop content area ─────────────────────────────────────────────────── */
+  .view-content {
+    padding: var(--sp-8);
+    max-width: 1200px;
+  }
+
+  .view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-end: var(--sp-6);
+  }
+
+  .view-title {
+    font-size: var(--text-xl);
+    font-weight: var(--fw-bold);
+    color: var(--c-text);
+  }
+
+  /* ── Stat card grid (HR dashboard) ───────────────────────────────────────── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-4);
+    margin-block-end: var(--sp-6);
+  }
+
+  .stat-card {
+    background: var(--c-surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--c-border);
+    padding: var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .stat-card-label {
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    color: var(--c-text-secondary);
+  }
+
+  .stat-card-value {
+    font-size: var(--text-2xl);
+    font-weight: var(--fw-bold);
+    color: var(--c-text);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-card-value.stat-present  { color: var(--c-present); }
+  .stat-card-value.stat-absent   { color: var(--c-absent);  }
+  .stat-card-value.stat-late     { color: var(--c-late);    }
+  .stat-card-value.stat-leave    { color: var(--c-leave);   }
+
+  /* ── Data table ───────────────────────────────────────────────────────────── */
+  .data-table-wrap {
+    background: var(--c-surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+
+  .data-table thead {
+    background: var(--c-surface-raised);
+    border-block-end: 1px solid var(--c-border);
+  }
+
+  .data-table th {
+    padding: var(--sp-3) var(--sp-4);
+    font-weight: var(--fw-semi);
+    color: var(--c-text-secondary);
+    text-align: start;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .data-table th.sortable { cursor: pointer; }
+  .data-table th.sortable:hover { color: var(--c-text); }
+
+  .data-table td {
+    padding: var(--sp-3) var(--sp-4);
+    border-block-end: 1px solid var(--c-border);
+    color: var(--c-text);
+    vertical-align: middle;
+  }
+
+  .data-table tbody tr:last-child td { border-block-end: none; }
+
+  .data-table tbody tr {
+    transition: background var(--dur-fast);
+    cursor: pointer;
+  }
+
+  .data-table tbody tr:hover { background: var(--c-surface-hover); }
+
+  /* ── Responsive degradation for smaller desktops ─────────────────────────── */
+  @media (max-width: 1100px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+} /* end @media (min-width: 900px) */
