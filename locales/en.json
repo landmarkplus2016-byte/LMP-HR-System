@@ -142,7 +142,9 @@
     "present_count": "Present",
     "absent_count": "Absent",
     "late_count": "Late",
-    "leave_count": "On Leave"
+    "leave_count": "On Leave",
+    "live": "Live",
+    "attendance_title": "Team Attendance"
   },
 
   "hr": {

@@ -142,7 +142,9 @@
     "present_count": "حاضر",
     "absent_count": "غائب",
     "late_count": "متأخر",
-    "leave_count": "في إجازة"
+    "leave_count": "في إجازة",
+    "live": "مباشر",
+    "attendance_title": "حضور الفريق"
   },
 
   "hr": {

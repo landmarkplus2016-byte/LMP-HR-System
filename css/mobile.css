@@ -545,6 +545,343 @@
   padding: var(--sp-4);
 }
 
+/* ── Manager: live badge ────────────────────────────────────────────────────── */
+
+.mgr-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semi);
+  color: var(--c-present);
+  background: var(--c-present-bg);
+  border: 1px solid var(--c-present-border);
+  padding: 3px var(--sp-3);
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+
+.mgr-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: var(--c-present);
+  flex-shrink: 0;
+  animation: mgr-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes mgr-live-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%       { opacity: 0.4; transform: scale(0.82); }
+}
+
+/* ── Manager: 2×2 summary stat grid ────────────────────────────────────────── */
+
+.mgr-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  margin-block-end: var(--sp-5);
+}
+
+.mgr-stat-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4) var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  text-align: center;
+  box-shadow: var(--shadow-xs);
+}
+
+.mgr-stat-num {
+  font-size: var(--text-2xl);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.mgr-stat-label {
+  font-size: var(--text-xs);
+  color: var(--c-text-secondary);
+  line-height: var(--lh-snug);
+}
+
+.mgr-stat-present { background: var(--c-present-bg); border-color: var(--c-present-border); }
+.mgr-stat-present .mgr-stat-num { color: var(--c-present); }
+
+.mgr-stat-absent  { background: var(--c-absent-bg);  border-color: var(--c-absent-border);  }
+.mgr-stat-absent  .mgr-stat-num { color: var(--c-absent);  }
+
+.mgr-stat-late    { background: var(--c-late-bg);    border-color: var(--c-late-border);    }
+.mgr-stat-late    .mgr-stat-num { color: var(--c-late);    }
+
+.mgr-stat-leave   { background: var(--c-leave-bg);   border-color: var(--c-leave-border);   }
+.mgr-stat-leave   .mgr-stat-num { color: var(--c-leave);   }
+
+/* ── Manager: section header row ────────────────────────────────────────────── */
+
+.mgr-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: var(--sp-3);
+}
+
+.mgr-section-title {
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semi);
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mgr-refresh-time {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Manager: team member list ──────────────────────────────────────────────── */
+
+.mgr-member-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: 0;
+}
+
+.mgr-member-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--shadow-xs);
+  list-style: none;
+}
+
+/* Circular avatar with coloured background and member initials */
+.mgr-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-full);
+  background: var(--c-primary-dim);
+  color: var(--c-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semi);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.mgr-member-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mgr-member-name {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semi);
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mgr-member-dept {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mgr-member-right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-1);
+}
+
+.mgr-member-time {
+  font-size: var(--text-xs);
+  color: var(--c-text-secondary);
+  font-variant-numeric: tabular-nums;
+  /* Times are always LTR regardless of UI language */
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+/* ── Manager: team attendance list ──────────────────────────────────────────── */
+
+.mgr-date-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-block-end: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.mgr-date-input {
+  width: auto;
+  flex-shrink: 0;
+  /* Date inputs are always LTR */
+  direction: ltr;
+}
+
+.mgr-att-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: 0;
+}
+
+.mgr-att-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--shadow-xs);
+  list-style: none;
+}
+
+.mgr-att-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mgr-att-times {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mgr-att-right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-1);
+}
+
+.mgr-att-hours {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Manager: leave approval cards ──────────────────────────────────────────── */
+
+.mgr-leave-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: 0;
+}
+
+.mgr-leave-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  list-style: none;
+}
+
+.mgr-leave-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.mgr-leave-name {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semi);
+  color: var(--c-text);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mgr-leave-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mgr-leave-type {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--c-text);
+}
+
+.mgr-leave-dates {
+  font-size: var(--text-xs);
+  color: var(--c-text-secondary);
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: embed;
+}
+
+.mgr-leave-reason {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+
+.mgr-leave-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.mgr-leave-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* ── Manager: error state ───────────────────────────────────────────────────── */
+
+.mgr-error {
+  padding: var(--sp-6) var(--sp-5);
+  color: var(--c-absent);
+  font-size: var(--text-sm);
+  text-align: center;
+  background: var(--c-absent-bg);
+  border: 1px solid var(--c-absent-border);
+  border-radius: var(--r-lg);
+  margin-block-end: var(--sp-3);
+}
+
 /* ── Mobile view padding ────────────────────────────────────────────────────── */
 @media (max-width: 899px) {
   #app {
