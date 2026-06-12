@@ -179,11 +179,12 @@ function addDepartment(payload) {
   if (String(auth.employee.role || '').toLowerCase() !== 'hr') {
     return error('HR access required', 'يلزم صلاحية مدير الموارد البشرية');
   }
-  const name = String(payload.name || '').trim();
+  const name          = String(payload.name             || '').trim();
+  const defaultShiftId = String(payload.default_shift_id || '').trim();
   if (!name) return error('name is required', 'اسم القسم مطلوب');
   const deptId = generateId('dp');
-  appendRow(getSheet('Departments'), { id: deptId, name });
-  return ok({ id: deptId, name });
+  appendRow(getSheet('Departments'), { id: deptId, name: name, default_shift_id: defaultShiftId });
+  return ok({ id: deptId, name: name, default_shift_id: defaultShiftId });
 }
 
 function updateDepartment(payload) {
@@ -198,7 +199,8 @@ function updateDepartment(payload) {
   const dept  = findRow(sheet, 'id', deptId);
   if (!dept) return error('Department not found', 'القسم غير موجود');
   const updates = {};
-  if (payload.name !== undefined) updates.name = String(payload.name).trim();
+  if (payload.name             !== undefined) updates.name              = String(payload.name).trim();
+  if (payload.default_shift_id !== undefined) updates.default_shift_id = String(payload.default_shift_id).trim();
   if (Object.keys(updates).length === 0) {
     return error('No valid fields to update', 'لا توجد حقول صالحة للتحديث');
   }
@@ -265,9 +267,10 @@ function updateConfig(payload) {
   if (String(auth.employee.role || '').toLowerCase() !== 'hr') {
     return error('HR access required', 'يلزم صلاحية مدير الموارد البشرية');
   }
-  const updates = payload.config;
+  // api.js sends { updates: {...} }; accept either key for resilience
+  const updates = payload.updates || payload.config;
   if (!updates || typeof updates !== 'object') {
-    return error('config object is required', 'كائن الإعدادات مطلوب');
+    return error('updates object is required', 'كائن الإعدادات مطلوب');
   }
   const sheet = getSheet('Config');
   const rows  = sheetToObjects(sheet);

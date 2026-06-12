@@ -174,8 +174,10 @@
     "inactive": "Inactive",
     "deactivate": "Deactivate",
     "reactivate": "Reactivate",
+    "deactivate_confirm": "This employee will lose access immediately. Are you sure?",
     "biometric_exempt": "Biometric exempt",
     "temp_password": "Temporary password",
+    "manager": "Manager",
     "no_employees": "No employees found",
     "search": "Search employees"
   },
@@ -191,7 +193,9 @@
     "active": "Active",
     "inactive": "Inactive",
     "toggle_active": "Toggle active",
-    "no_locations": "No locations found"
+    "no_locations": "No locations found",
+    "picker_hint": "Click the map to set the location, or enter coordinates manually",
+    "coords_required": "Please set coordinates on the map or enter them manually"
   },
 
   "shifts": {
