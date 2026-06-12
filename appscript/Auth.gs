@@ -1,28 +1,49 @@
 // =============================================================================
-// Auth.gs — Login, session management, password change, WebAuthn stubs
+// Auth.gs — Login, session management, password change, WebAuthn
 // =============================================================================
+//
+// Employees tab additions required for biometric rate-limiting (Stage 6):
+//   Add two columns to the Employees sheet:
+//     biometric_locked     — 'TRUE' / 'FALSE' / ''
+//     biometric_locked_at  — ISO timestamp set when lock is applied, '' otherwise
+//   HR screens can display these to flag locked employees.
 
 // ---------------------------------------------------------------------------
 // login
 // ---------------------------------------------------------------------------
 // Payload: { username, password_hash, device_id }
 // Returns:
+//   { status: 'locked', minutes_remaining }     — rate limited
 //   { status: 'change_password', employee_id }  — first login
-//   ok({ token, employee, config })              — normal login
-//   error(...)                                   — bad credentials / inactive
+//   ok({ token, employee, config })             — normal login
+//   error(...)                                  — bad credentials / inactive
 function login(payload) {
-  const username     = String(payload.username     || '').trim();
+  const username     = String(payload.username      || '').trim();
   const passwordHash = String(payload.password_hash || '').trim();
-  const deviceId     = String(payload.device_id    || '');
+  const deviceId     = String(payload.device_id     || '');
 
   if (!username || !passwordHash) {
     return error('Username and password are required', 'اسم المستخدم وكلمة المرور مطلوبان');
   }
 
+  // Rate limiting — check for account lockout before touching credentials
+  const loginLock = _checkLoginLock(username);
+  if (loginLock.locked) {
+    return {
+      status:            'locked',
+      minutes_remaining: loginLock.minutes_remaining,
+      message_en: 'Account locked due to too many failed attempts. Try again in ' +
+                  loginLock.minutes_remaining + ' minute(s).',
+      message_ar: 'تم قفل الحساب بسبب كثرة محاولات الدخول الفاشلة. حاول مرة أخرى خلال ' +
+                  loginLock.minutes_remaining + ' دقيقة.'
+    };
+  }
+
   const empSheet = getSheet('Employees');
-  const employee = findRow(empSheet, 'username', username);
+  const employee  = findRow(empSheet, 'username', username);
 
   if (!employee) {
+    _recordFailedLogin(username);
     return error('Invalid credentials', 'بيانات الدخول غير صحيحة');
   }
 
@@ -31,8 +52,12 @@ function login(payload) {
   }
 
   if (String(employee.password_hash) !== passwordHash) {
+    _recordFailedLogin(username);
     return error('Invalid credentials', 'بيانات الدخول غير صحيحة');
   }
+
+  // Successful auth — clear any failed attempt counter
+  _clearFailedLogin(username);
 
   if (String(employee.force_password_change).toUpperCase() === 'TRUE') {
     // No session created yet — frontend must show password change screen first
@@ -52,17 +77,17 @@ function login(payload) {
 // Payload: { username, old_password_hash, new_password_hash, device_id }
 // Returns: ok({ token, employee, config }) on success — creates session immediately.
 function changePassword(payload) {
-  const username        = String(payload.username         || '').trim();
-  const oldHash         = String(payload.old_password_hash || '').trim();
-  const newHash         = String(payload.new_password_hash || '').trim();
-  const deviceId        = String(payload.device_id        || '');
+  const username  = String(payload.username          || '').trim();
+  const oldHash   = String(payload.old_password_hash || '').trim();
+  const newHash   = String(payload.new_password_hash || '').trim();
+  const deviceId  = String(payload.device_id         || '');
 
   if (!username || !oldHash || !newHash) {
     return error('Missing required fields', 'الحقول المطلوبة مفقودة');
   }
 
   const empSheet = getSheet('Employees');
-  const employee = findRow(empSheet, 'username', username);
+  const employee  = findRow(empSheet, 'username', username);
 
   if (!employee) {
     return error('Invalid credentials', 'بيانات الدخول غير صحيحة');
@@ -77,14 +102,14 @@ function changePassword(payload) {
   }
 
   updateRow(empSheet, employee.__rowIndex, {
-    password_hash:          newHash,
-    force_password_change:  'FALSE'
+    password_hash:         newHash,
+    force_password_change: 'FALSE'
   });
 
   const token  = createSession(employee.id, employee.role, deviceId);
   const config = getAllConfig();
 
-  // Re-read the employee row so the returned profile has the updated fields
+  // Re-read so the returned profile reflects the updated fields
   const updated = findRow(empSheet, 'id', employee.id);
   return ok({ token, employee: safeEmployee(updated), config });
 }
@@ -93,11 +118,10 @@ function changePassword(payload) {
 // validateSession
 // ---------------------------------------------------------------------------
 // Called at the top of every authenticated handler.
-// Returns { valid: true, employee, session } or { valid: false, error: <error obj> }.
+// Returns { valid: true, employee, session } or { valid: false, error: <obj> }.
 // Never throws — callers check .valid before proceeding.
 function validateSession(payload) {
   const token    = String(payload.session_token || '').trim();
-  const deviceId = String(payload.device_id     || '');
 
   if (!token) {
     return { valid: false, error: error('Session token required', 'رمز الجلسة مطلوب') };
@@ -111,7 +135,7 @@ function validateSession(payload) {
   }
 
   // Only validate auth sessions here — WebAuthn challenge rows are handled
-  // separately in Auth.gs webauthn* functions
+  // separately in the webauthn* functions below
   if (session.token_type && String(session.token_type) !== 'session') {
     return { valid: false, error: error('Invalid session', 'جلسة غير صالحة') };
   }
@@ -121,11 +145,17 @@ function validateSession(payload) {
 
   if (isNaN(expiresAt.getTime()) || now > expiresAt) {
     deleteSheetRow(sessSheet, session.__rowIndex);
-    return { valid: false, error: error('Session expired. Please log in again.', 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً') };
+    return {
+      valid: false,
+      error: error(
+        'Session expired. Please log in again.',
+        'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً'
+      )
+    };
   }
 
   const empSheet = getSheet('Employees');
-  const employee = findRow(empSheet, 'id', String(session.employee_id));
+  const employee  = findRow(empSheet, 'id', String(session.employee_id));
 
   if (!employee) {
     return { valid: false, error: error('Employee not found', 'الموظف غير موجود') };
@@ -177,7 +207,6 @@ function createSession(employeeId, role, deviceId) {
 // ---------------------------------------------------------------------------
 // getConfig  (public — no session required)
 // ---------------------------------------------------------------------------
-// Payload: {} — called by the PWA on startup before login
 function getConfig(payload) {
   return ok({ config: getAllConfig() });
 }
@@ -185,9 +214,6 @@ function getConfig(payload) {
 // ---------------------------------------------------------------------------
 // getProfile  (requires valid session)
 // ---------------------------------------------------------------------------
-// Lightweight session check used by the PWA on startup.
-// Returns the validated employee profile so the app can restore its state
-// without the employee having to log in again.
 function getProfile(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
@@ -197,7 +223,6 @@ function getProfile(payload) {
 // ---------------------------------------------------------------------------
 // safeEmployee  (private helper)
 // ---------------------------------------------------------------------------
-// Strips fields that must never leave the server before returning to client.
 function safeEmployee(employee) {
   const safe = Object.assign({}, employee);
   delete safe.password_hash;
@@ -210,9 +235,6 @@ function safeEmployee(employee) {
 // webauthnRegisterChallenge
 // ---------------------------------------------------------------------------
 // Payload: { session_token, device_id }
-// Requires a valid session. Generates a random 32-byte challenge, stores it
-// in the Sessions tab (token_type='webauthn_reg', expires in 2 min), and
-// returns it base64url-encoded for the PWA's navigator.credentials.create().
 function webauthnRegisterChallenge(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
@@ -231,16 +253,13 @@ function webauthnRegisterChallenge(payload) {
     used:        ''
   });
 
-  return ok({ challenge: challenge });
+  return ok({ challenge });
 }
 
 // ---------------------------------------------------------------------------
 // webauthnRegisterComplete
 // ---------------------------------------------------------------------------
-// Payload: { session_token, credentialId, publicKey (attestationObject b64url),
-//            signedChallenge (clientDataJSON b64url) }
-// Verifies the clientDataJSON challenge matches the stored challenge, then
-// writes the credential ID and attestation blob to the Employees tab.
+// Payload: { session_token, credentialId, publicKey, signedChallenge }
 function webauthnRegisterComplete(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
@@ -253,7 +272,6 @@ function webauthnRegisterComplete(payload) {
     return error('Missing credential data', 'بيانات الاعتماد مفقودة');
   }
 
-  // Decode and parse clientDataJSON
   let clientData;
   try {
     clientData = JSON.parse(_b64urlToString(clientDataB64));
@@ -268,7 +286,6 @@ function webauthnRegisterComplete(payload) {
     return error('Insecure origin rejected', 'المصدر غير آمن');
   }
 
-  // Find the pending challenge row (strip any padding for safe comparison)
   const challenge = (clientData.challenge || '').replace(/=/g, '');
   const sessSheet = getSheet('Sessions');
   const row = _findChallengeRow(sessSheet, challenge, auth.employee.id, 'webauthn_reg');
@@ -276,10 +293,8 @@ function webauthnRegisterComplete(payload) {
     return error('Challenge not found or expired', 'انتهت صلاحية التحقق أو غير موجود');
   }
 
-  // Mark single-use
   updateRow(sessSheet, row.__rowIndex, { used: 'TRUE' });
 
-  // Persist credential against the employee record
   const empSheet = getSheet('Employees');
   updateRow(empSheet, auth.employee.__rowIndex, {
     webauthn_credential_id:  credentialId,
@@ -294,11 +309,23 @@ function webauthnRegisterComplete(payload) {
 // webauthnAuthChallenge
 // ---------------------------------------------------------------------------
 // Payload: { session_token, device_id }
-// Same as webauthnRegisterChallenge but token_type='webauthn_auth'.
-// Each challenge is single-use and expires in 2 minutes.
+// Blocked while the employee's biometric check-in is locked.
 function webauthnAuthChallenge(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
+
+  // Refuse to issue a challenge while biometric check-in is locked
+  const bioLock = _checkBiometricLock(String(auth.employee.id));
+  if (bioLock.locked) {
+    return {
+      status:            'biometric_locked',
+      minutes_remaining: bioLock.minutes_remaining,
+      message_en: 'Biometric check-in locked due to too many failed attempts. ' +
+                  'Try again in ' + bioLock.minutes_remaining + ' minute(s).',
+      message_ar: 'تم قفل تسجيل الحضور بالبصمة بسبب كثرة المحاولات الفاشلة. ' +
+                  'حاول مرة أخرى خلال ' + bioLock.minutes_remaining + ' دقيقة.'
+    };
+  }
 
   const challenge = _generateChallenge();
   const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
@@ -314,7 +341,7 @@ function webauthnAuthChallenge(payload) {
     used:        ''
   });
 
-  return ok({ challenge: challenge });
+  return ok({ challenge });
 }
 
 // ---------------------------------------------------------------------------
@@ -324,29 +351,35 @@ function webauthnAuthChallenge(payload) {
 //   credentialId, clientDataJSON, authenticatorData, signature  (all b64url)
 // }}
 //
-// Verification steps:
-//   1. clientDataJSON.type === 'webauthn.get'
-//   2. clientDataJSON.origin is HTTPS
-//   3. challenge in clientDataJSON matches a valid, unused, unexpired row
-//   4. credentialId matches the employee's registered credential
-//   5. challenge row is marked used (single-use enforcement)
-//   6. A one-time checkin_token (UUID, 2-min TTL) is issued
+// Failed verifications are counted per employee. After 3 failures in 10 min
+// the employee is locked for 30 min — biometric_locked=TRUE is written to
+// the Employees tab so HR can see the flag in the dashboard.
 //
-// NOTE: Apps Script does not expose ECDSA P-256 primitives, so the
-// assertion signature over authenticatorData + SHA-256(clientDataJSON)
-// cannot be cryptographically verified here. Security relies on the
-// server-generated single-use challenge, HTTPS transport, and session
-// validation as layered controls.
+// NOTE: Apps Script cannot verify the ECDSA P-256 assertion signature.
+// Security relies on server-generated single-use challenges, HTTPS, and
+// session validation as layered controls.
 function webauthnAuthVerify(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
+
+  // Check biometric lock before proceeding
+  const bioLock = _checkBiometricLock(String(auth.employee.id));
+  if (bioLock.locked) {
+    return {
+      status:            'biometric_locked',
+      minutes_remaining: bioLock.minutes_remaining,
+      message_en: 'Biometric check-in locked due to too many failed attempts. ' +
+                  'Try again in ' + bioLock.minutes_remaining + ' minute(s).',
+      message_ar: 'تم قفل تسجيل الحضور بالبصمة بسبب كثرة المحاولات الفاشلة. ' +
+                  'حاول مرة أخرى خلال ' + bioLock.minutes_remaining + ' دقيقة.'
+    };
+  }
 
   const sr = payload.signedResponse;
   if (!sr || !sr.credentialId || !sr.clientDataJSON || !sr.authenticatorData || !sr.signature) {
     return error('Missing signed response fields', 'بيانات الاستجابة الموقّعة مفقودة');
   }
 
-  // Decode and parse clientDataJSON
   let clientData;
   try {
     clientData = JSON.parse(_b64urlToString(sr.clientDataJSON));
@@ -361,27 +394,29 @@ function webauthnAuthVerify(payload) {
     return error('Insecure origin rejected', 'المصدر غير آمن');
   }
 
-  // Validate challenge
+  // Validate challenge — counts as a failed attempt if not found (replay/tamper)
   const challenge = (clientData.challenge || '').replace(/=/g, '');
   const sessSheet = getSheet('Sessions');
   const row = _findChallengeRow(sessSheet, challenge, auth.employee.id, 'webauthn_auth');
   if (!row) {
+    _recordWebAuthnFailure(auth.employee.id);
     return error('Challenge not found or expired', 'انتهت صلاحية التحقق أو غير موجود');
   }
 
-  // Verify credential ID matches the registered credential for this employee
+  // Verify credential ID matches the registered credential
   const storedCredId = String(auth.employee.webauthn_credential_id || '').trim();
   if (!storedCredId) {
     return error('Biometric not registered for this account', 'البصمة غير مسجّلة لهذا الحساب');
   }
   if (storedCredId !== sr.credentialId) {
+    _recordWebAuthnFailure(auth.employee.id);
     return error('Credential mismatch', 'بيانات الاعتماد غير متطابقة');
   }
 
-  // Mark challenge as used — prevents replay within the TTL window
+  // Mark challenge as used — single-use enforcement
   updateRow(sessSheet, row.__rowIndex, { used: 'TRUE' });
 
-  // Issue a one-time checkin_token (2-min expiry)
+  // Issue one-time checkin_token (2-min expiry)
   const checkinToken = Utilities.getUuid();
   const tokenExpiry  = new Date(Date.now() + 2 * 60 * 1000);
 
@@ -399,20 +434,16 @@ function webauthnAuthVerify(payload) {
   return ok({ verified: true, checkin_token: checkinToken });
 }
 
-// ---------------------------------------------------------------------------
-// Private helpers — WebAuthn
-// ---------------------------------------------------------------------------
+// =============================================================================
+// Private helpers — WebAuthn (challenge generation + lookup)
+// =============================================================================
 
-// Generate a base64url-encoded 32-byte challenge.
-// Uses SHA-256 of UUID + high-res timestamp + random decimal for entropy.
 function _generateChallenge() {
   const seed  = Utilities.getUuid() + Date.now().toString() + Math.random().toString(36).slice(2);
   const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, seed, Utilities.Charset.UTF_8);
   return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, '');
 }
 
-// Decode a base64url string to a UTF-8 string.
-// Used to parse clientDataJSON sent by the browser (JSON, UTF-8 encoded).
 function _b64urlToString(b64url) {
   const padding = (4 - (b64url.length % 4)) % 4;
   const padded  = b64url + '='.repeat(padding);
@@ -420,16 +451,15 @@ function _b64urlToString(b64url) {
   return Utilities.newBlob(bytes).getDataAsString();
 }
 
-// Find a valid challenge row: correct type, employee, not used, not expired.
-// Returns the row object (with __rowIndex) or null.
+// Returns the matching Sessions row or null if not found / expired / used.
 function _findChallengeRow(sessSheet, challenge, employeeId, tokenType) {
   if (!challenge) return null;
 
   const row = findRow(sessSheet, 'token', challenge);
-  if (!row) return null;
-  if (String(row.token_type)   !== tokenType)           return null;
-  if (String(row.employee_id)  !== String(employeeId))  return null;
-  if (String(row.used).toUpperCase() === 'TRUE')        return null;
+  if (!row)                                              return null;
+  if (String(row.token_type)  !== tokenType)             return null;
+  if (String(row.employee_id) !== String(employeeId))    return null;
+  if (String(row.used).toUpperCase() === 'TRUE')         return null;
 
   const now       = new Date();
   const expiresAt = new Date(row.expires_at);
@@ -439,4 +469,173 @@ function _findChallengeRow(sessSheet, challenge, employeeId, tokenType) {
   }
 
   return row;
+}
+
+// =============================================================================
+// Private helpers — Rate limiting
+// =============================================================================
+//
+// The Sessions tab stores rate-limit counters as lightweight rows (no extra sheet).
+// Column mapping for these special rows:
+//   token       → 'failed_<username>'  or  'webauthn_fail_<employee_id>'
+//   token_type  → 'failed_attempt'     or  'webauthn_fail'
+//   challenge   → attempt count (string integer)
+//   device_id   → last_attempt ISO timestamp
+//   expires_at  → lock_until ISO timestamp  ('' = not yet locked)
+//   role, used  → '' (unused)
+
+const _LOGIN_MAX_ATTEMPTS  = 5;
+const _LOGIN_WINDOW_MS     = 10 * 60 * 1000; // 10 min rolling window
+const _LOGIN_LOCKOUT_MS    = 30 * 60 * 1000; // 30 min lockout
+
+const _WEBAUTHN_MAX_FAILURES = 3;
+const _WEBAUTHN_WINDOW_MS    = 10 * 60 * 1000;
+const _WEBAUTHN_LOCKOUT_MS   = 30 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// Login rate limiting
+// ---------------------------------------------------------------------------
+
+function _checkLoginLock(username) {
+  const row = findRow(getSheet('Sessions'), 'token', 'failed_' + username);
+  if (!row) return { locked: false };
+
+  const lockUntil = new Date(row.expires_at);
+  if (isNaN(lockUntil.getTime())) return { locked: false };
+
+  const now = new Date();
+  if (now >= lockUntil) return { locked: false }; // expired naturally
+
+  return {
+    locked:            true,
+    minutes_remaining: Math.ceil((lockUntil.getTime() - now.getTime()) / 60000)
+  };
+}
+
+function _recordFailedLogin(username) {
+  const sessSheet = getSheet('Sessions');
+  const now       = new Date();
+  const tokenKey  = 'failed_' + username;
+  const row       = findRow(sessSheet, 'token', tokenKey);
+
+  if (!row) {
+    appendRow(sessSheet, {
+      token:       tokenKey,
+      employee_id: username,
+      role:        '',
+      expires_at:  '',
+      device_id:   now.toISOString(),
+      token_type:  'failed_attempt',
+      challenge:   '1',
+      used:        ''
+    });
+    return;
+  }
+
+  // Reset counter if last attempt was outside the rolling window
+  const lastAttempt = new Date(row.device_id);
+  let count = parseInt(String(row.challenge), 10) || 0;
+  if (!isNaN(lastAttempt.getTime()) &&
+      (now.getTime() - lastAttempt.getTime()) > _LOGIN_WINDOW_MS) {
+    count = 0;
+  }
+  count++;
+
+  const updates = { challenge: String(count), device_id: now.toISOString() };
+  if (count >= _LOGIN_MAX_ATTEMPTS) {
+    updates.expires_at = new Date(now.getTime() + _LOGIN_LOCKOUT_MS).toISOString();
+  }
+
+  updateRow(sessSheet, row.__rowIndex, updates);
+}
+
+function _clearFailedLogin(username) {
+  const sessSheet = getSheet('Sessions');
+  const row = findRow(sessSheet, 'token', 'failed_' + username);
+  if (row) deleteSheetRow(sessSheet, row.__rowIndex);
+}
+
+// ---------------------------------------------------------------------------
+// Biometric (WebAuthn) rate limiting
+// ---------------------------------------------------------------------------
+
+// Returns { locked: false } or { locked: true, minutes_remaining }.
+// Auto-clears the lock from the Employees tab when the 30-min window has passed.
+function _checkBiometricLock(employeeId) {
+  const empSheet = getSheet('Employees');
+  const emp      = findRow(empSheet, 'id', String(employeeId));
+  if (!emp || String(emp.biometric_locked).toUpperCase() !== 'TRUE') {
+    return { locked: false };
+  }
+
+  const lockedAt = new Date(emp.biometric_locked_at || '');
+  if (isNaN(lockedAt.getTime())) return { locked: false };
+
+  const now       = new Date();
+  const lockUntil = new Date(lockedAt.getTime() + _WEBAUTHN_LOCKOUT_MS);
+
+  if (now < lockUntil) {
+    return {
+      locked:            true,
+      minutes_remaining: Math.ceil((lockUntil.getTime() - now.getTime()) / 60000)
+    };
+  }
+
+  // Lock has expired — clear it
+  updateRow(empSheet, emp.__rowIndex, {
+    biometric_locked:    'FALSE',
+    biometric_locked_at: ''
+  });
+  return { locked: false };
+}
+
+// Record a failed WebAuthn verification attempt.
+// After _WEBAUTHN_MAX_FAILURES in the window: set biometric_locked=TRUE on the
+// Employees row (HR flag) and delete the counter row.
+function _recordWebAuthnFailure(employeeId) {
+  const sessSheet = getSheet('Sessions');
+  const now       = new Date();
+  const tokenKey  = 'webauthn_fail_' + employeeId;
+  const row       = findRow(sessSheet, 'token', tokenKey);
+
+  if (!row) {
+    appendRow(sessSheet, {
+      token:       tokenKey,
+      employee_id: String(employeeId),
+      role:        '',
+      expires_at:  '',
+      device_id:   now.toISOString(),
+      token_type:  'webauthn_fail',
+      challenge:   '1',
+      used:        ''
+    });
+    return;
+  }
+
+  const lastAttempt = new Date(row.device_id);
+  let count = parseInt(String(row.challenge), 10) || 0;
+  if (!isNaN(lastAttempt.getTime()) &&
+      (now.getTime() - lastAttempt.getTime()) > _WEBAUTHN_WINDOW_MS) {
+    count = 0;
+  }
+  count++;
+
+  if (count >= _WEBAUTHN_MAX_FAILURES) {
+    // Write the HR-visible lock flag onto the employee record
+    const empSheet = getSheet('Employees');
+    const emp      = findRow(empSheet, 'id', String(employeeId));
+    if (emp) {
+      updateRow(empSheet, emp.__rowIndex, {
+        biometric_locked:    'TRUE',
+        biometric_locked_at: now.toISOString()
+      });
+    }
+    // Counter row is no longer needed — lock is now in the Employees tab
+    deleteSheetRow(sessSheet, row.__rowIndex);
+  } else {
+    updateRow(sessSheet, row.__rowIndex, {
+      challenge: String(count),
+      device_id: now.toISOString()
+    });
+  }
 }
