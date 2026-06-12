@@ -15,10 +15,10 @@
   <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
 
-  <!-- Fonts — IBM Plex Sans Arabic + Latin, loaded together -->
+  <!-- Fonts — Tajawal covers Arabic + Latin in a single family -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 
   <!-- Leaflet CSS must precede app styles so our overrides win -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -58,17 +58,17 @@
         <img src="assets/logo.svg" alt="" class="setup-logo" width="48" height="48"
              aria-hidden="true" onerror="this.style.display='none'">
       </div>
-      <h1 id="setup-title" class="setup-title">إعداد التطبيق</h1>
-      <p class="setup-description">
-        الصق رابط Google Apps Script الخاص بالشركة لبدء الاستخدام.
+      <h1 id="setup-title" class="setup-title">إعداد الخادم</h1>
+      <p id="setup-desc" class="setup-description">
+        أدخل رابط Apps Script الخاص بالمشروع
       </p>
-      <label for="setup-url-input" class="setup-label">رابط Apps Script</label>
+      <label id="setup-url-label" for="setup-url-input" class="setup-label">رابط Apps Script</label>
       <input id="setup-url-input" type="url" class="setup-input"
              placeholder="https://script.google.com/macros/s/…"
              autocomplete="off" spellcheck="false" dir="ltr">
       <p id="setup-error" class="setup-error" role="alert" hidden></p>
       <button id="setup-save-btn" class="btn btn-primary setup-btn" type="button">
-        حفظ والمتابعة
+        حفظ
       </button>
     </div>
   </div>

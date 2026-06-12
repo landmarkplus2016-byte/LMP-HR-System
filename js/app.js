@@ -322,11 +322,26 @@ function _renderSidebar(nav, app, items, curHash) {
   });
   nav.appendChild(ul);
 
-  // Footer: language toggle + sign out
+  // Footer: user profile + language toggle + sign out
   const currentLang = localStorage.getItem('lmp_lang') || 'ar';
   const footer = document.createElement('div');
   footer.className = 'nav-sidebar-footer';
+
+  // User profile block — initials avatar, name, role label
+  const user    = App.currentUser;
+  const initials = user
+    ? (user.name || '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?'
+    : '?';
+  const roleLabel = user ? (t(`role.${user.role}`) || user.role || '') : '';
+
   footer.innerHTML = `
+    <div class="nav-user-profile" aria-label="${t('nav.signed_in_as') || 'مسجل الدخول بوصفك'}">
+      <div class="nav-user-avatar" aria-hidden="true">${initials}</div>
+      <div style="min-width:0;flex:1;">
+        <div class="nav-user-name">${user ? (user.name || '') : ''}</div>
+        <div class="nav-user-role">${roleLabel}</div>
+      </div>
+    </div>
     <button class="nav-lang-toggle" type="button" id="lang-toggle-btn"
             aria-label="${t('nav.toggle_language') || 'تبديل اللغة'}">
       <span class="nav-icon">${Icons.lang}</span>

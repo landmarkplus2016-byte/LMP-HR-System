@@ -19,7 +19,7 @@
     overflow-y: auto;
   }
 
-  /* ── Sidebar nav ──────────────────────────────────────────────────────────── */
+  /* ── Sidebar nav — dark navy, matches prototype exactly ──────────────────── */
   .nav-sidebar {
     position: fixed;
     inset-block-start: 0;
@@ -28,9 +28,8 @@
     width: var(--sidebar-w);
     display: flex;
     flex-direction: column;
-    background: var(--c-surface);
-    border-inline-end: 1px solid var(--c-border);
-    box-shadow: var(--shadow-sm);
+    background: var(--c-navy);        /* eclipse / dark navy from prototype    */
+    border-inline-end: 1px solid rgba(255,255,255,0.06);
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 100;
@@ -40,58 +39,86 @@
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    padding: var(--sp-5) var(--sp-4);
-    border-block-end: 1px solid var(--c-border);
+    padding: 24px 20px 20px;
+    border-block-end: 1px solid rgba(255,255,255,0.08);
     flex-shrink: 0;
+  }
+
+  /* Brand mark — small accent square holding LMP initials */
+  .nav-logo-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--c-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
   }
 
   .nav-logo {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
     object-fit: contain;
+    border-radius: 10px;
   }
 
   .nav-app-name {
-    font-size: var(--text-sm);
-    font-weight: var(--fw-semi);
-    color: var(--c-text);
+    font-size: 13px;
+    font-weight: var(--fw-bold);
+    color: #fff;
     line-height: var(--lh-tight);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  .nav-app-sub {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    margin-block-start: 2px;
+    white-space: nowrap;
+  }
+
   .nav-sidebar-list {
     flex: 1;
-    padding: var(--sp-3) var(--sp-2);
+    padding: 12px 10px;
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
 
+  /* All items carry a 3px inline border — transparent for inactive, accent for
+     active — so the padding never shifts between states.                       */
   .nav-sidebar-item {
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
+    padding: 9px 12px;
     border-radius: var(--r-md);
-    color: var(--c-text-secondary);
-    font-size: var(--text-sm);
-    font-weight: var(--fw-medium);
-    transition: background var(--dur-fast), color var(--dur-fast);
+    border-inline-start: 3px solid transparent;
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    font-weight: var(--fw-normal);
+    transition: background var(--dur-fast), color var(--dur-fast),
+                border-color var(--dur-fast);
     white-space: nowrap;
     overflow: hidden;
+    font-family: var(--font);
   }
 
   .nav-sidebar-item:hover {
-    background: var(--c-surface-hover);
-    color: var(--c-text);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.9);
   }
 
   .nav-sidebar-item.nav-active {
-    background: var(--c-primary-dim);
-    color: var(--c-primary);
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    font-weight: var(--fw-semi);
+    border-inline-start-color: var(--c-primary);
   }
 
   .nav-icon {
@@ -112,73 +139,98 @@
     text-overflow: ellipsis;
   }
 
-  /* ── Nav badge — pending count pill on sidebar items ─────────────────────── */
+  /* ── Nav badge — pending count on sidebar items ────────────────────────────── */
   .nav-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 18px;
     height: 18px;
-    padding: 0 4px;
+    padding: 0 5px;
     border-radius: var(--r-full);
-    background: var(--c-absent);
-    color: white;
+    background: rgba(255,255,255,0.9);
+    color: var(--c-navy);
     font-size: 10px;
-    font-weight: var(--fw-bold);
+    font-weight: var(--fw-black);
     line-height: 1;
     flex-shrink: 0;
   }
 
-  /* Active nav item — badge adjusts color */
-  .nav-sidebar-item.nav-active .nav-badge {
-    background: var(--c-primary);
-  }
-
+  /* ── Sidebar footer — user profile + lang toggle + sign out ────────────────── */
   .nav-sidebar-footer {
-    padding: var(--sp-3) var(--sp-2);
-    border-block-start: 1px solid var(--c-border);
+    padding: 12px 10px;
+    border-block-start: 1px solid rgba(255,255,255,0.08);
     display: flex;
     flex-direction: column;
     gap: 2px;
     flex-shrink: 0;
   }
 
-  .nav-lang-toggle {
+  /* User profile row — shown when a session is active */
+  .nav-user-profile {
     display: flex;
     align-items: center;
-    gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
-    border-radius: var(--r-md);
-    color: var(--c-text-secondary);
-    font-size: var(--text-sm);
-    font-weight: var(--fw-medium);
-    width: 100%;
-    text-align: start;
-    transition: background var(--dur-fast), color var(--dur-fast);
+    gap: var(--sp-2);
+    padding: 8px 12px 12px;
+    border-block-end: 1px solid rgba(255,255,255,0.08);
+    margin-block-end: 4px;
   }
 
-  .nav-lang-toggle:hover {
-    background: var(--c-surface-hover);
-    color: var(--c-text);
+  .nav-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r-full);
+    background: var(--c-primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: var(--fw-black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    user-select: none;
   }
 
+  .nav-user-name {
+    font-size: 12px;
+    font-weight: var(--fw-semi);
+    color: #fff;
+    line-height: var(--lh-tight);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-user-role {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    white-space: nowrap;
+  }
+
+  .nav-lang-toggle,
   .nav-signout {
     display: flex;
     align-items: center;
     gap: var(--sp-3);
-    padding: var(--sp-2) var(--sp-3);
+    padding: 8px 12px;
     border-radius: var(--r-md);
-    color: var(--c-text-secondary);
-    font-size: var(--text-sm);
-    font-weight: var(--fw-medium);
+    color: rgba(255,255,255,0.55);
+    font-size: 13px;
+    font-weight: var(--fw-normal);
     width: 100%;
     text-align: start;
     transition: background var(--dur-fast), color var(--dur-fast);
+    font-family: var(--font);
+  }
+
+  .nav-lang-toggle:hover {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
   }
 
   .nav-signout:hover {
-    background: var(--c-absent-bg);
-    color: var(--c-absent);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
   }
 
   /* ── Desktop content area ─────────────────────────────────────────────────── */
@@ -285,18 +337,18 @@
     line-height: var(--lh-snug);
   }
 
-  /* Small status icon in the top-right of each stat card */
+  /* Status icon — rounded square (not circle), 36px, matches prototype */
   .stat-card-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--r-full);
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-md);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
 
-  .stat-card-icon svg { width: 14px; height: 14px; }
+  .stat-card-icon svg { width: 18px; height: 18px; }
 
   .stat-icon-present { background: var(--c-present-bg); color: var(--c-present); }
   .stat-icon-absent  { background: var(--c-absent-bg);  color: var(--c-absent);  }
@@ -305,7 +357,7 @@
 
   .stat-card-value {
     font-size: var(--text-2xl);
-    font-weight: var(--fw-bold);
+    font-weight: var(--fw-black);   /* 800 — heavier, matches prototype */
     color: var(--c-text);
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -1221,7 +1273,7 @@
     content: '';
     position: absolute;
     top: 3px;
-    left: 3px;
+    inset-inline-start: 3px;
     width: 16px;
     height: 16px;
     background: #fff;

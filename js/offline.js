@@ -290,40 +290,65 @@ function _flashSynced() {
 // =============================================================================
 // Public: showUpdateBanner
 // Called by the SW registration script in index.html when a new version is
-// waiting. Shows a banner with a single "Update" button.
-// worker — the ServiceWorker instance in "installed" / "waiting" state.
+// waiting. Shows a non-intrusive bottom card with an "Update Now" button.
+//
+// worker      — ServiceWorker instance in "installed" / "waiting" state.
+// Tap outside — dismisses the banner without updating.
+// Tap button  — posts SKIP_WAITING → SW activates → page reloads.
 // =============================================================================
 function showUpdateBanner(worker) {
-  let banner = document.getElementById('update-banner');
+  // Don't stack multiple banners if the function is somehow called twice.
+  const existing = document.getElementById('update-banner');
+  if (existing && !existing.hidden) return;
 
+  let banner = existing;
   if (!banner) {
     banner = document.createElement('div');
-    banner.id = 'update-banner';
+    banner.id        = 'update-banner';
     banner.className = 'update-banner';
-    banner.setAttribute('role', 'alert');
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
     document.body.appendChild(banner);
   }
 
   const lang     = localStorage.getItem('lmp_lang') || 'ar';
-  const msg      = typeof t === 'function' ? t('update.available') : (lang === 'ar' ? 'تحديث متاح — اضغط للتحديث' : 'Update available — tap to refresh');
-  const btnLabel = lang === 'ar' ? 'تحديث' : 'Update';
+  const msg      = (typeof t === 'function' && t('update.available'))
+                   || (lang === 'ar' ? 'إصدار جديد متاح' : 'A new version is available');
+  const btnLabel = (typeof t === 'function' && t('update.now'))
+                   || (lang === 'ar' ? 'تحديث الآن' : 'Update Now');
 
   banner.innerHTML = `
     <span class="update-banner-msg">${msg}</span>
     <button class="update-banner-btn" type="button" id="update-apply-btn">${btnLabel}</button>`;
   banner.hidden = false;
 
-  document.getElementById('update-apply-btn')?.addEventListener('click', () => {
+  // ── Dismiss helper — hides banner and removes the outside-click listener ──
+  function dismiss() {
     banner.hidden = true;
-    // Tell the waiting SW to activate immediately
+    document.removeEventListener('click', _outsideClick);
+  }
+
+  // ── "Update Now" button ────────────────────────────────────────────────────
+  document.getElementById('update-apply-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    dismiss();
+    // Ask the waiting SW to take over immediately.
     worker.postMessage({ type: 'SKIP_WAITING' });
-    // Reload once the new SW takes control
+    // SW.activate runs clients.claim() → fires 'controllerchange' here → reload.
     navigator.serviceWorker.addEventListener(
       'controllerchange',
       () => window.location.reload(),
       { once: true }
     );
   });
+
+  // ── Tap / click outside banner → dismiss without updating ──────────────────
+  // Defer by one tick so the click that triggered this call (if any) doesn't
+  // immediately fire the listener and close the banner.
+  function _outsideClick(e) {
+    if (!banner.contains(e.target)) dismiss();
+  }
+  setTimeout(() => document.addEventListener('click', _outsideClick), 0);
 }
 
 // =============================================================================

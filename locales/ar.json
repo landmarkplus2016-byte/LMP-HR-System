@@ -43,7 +43,14 @@
     "leave": "طلب إجازة",
     "team": "فريقي",
     "signout": "تسجيل الخروج",
-    "toggle_language": "تبديل اللغة"
+    "toggle_language": "تبديل اللغة",
+    "signed_in_as": "مسجّل الدخول بوصفك"
+  },
+
+  "role": {
+    "employee": "موظف",
+    "manager": "مدير",
+    "hr": "مدير الموارد البشرية"
   },
 
   "loading": {
@@ -61,6 +68,7 @@
   "setup": {
     "title": "إعداد الخادم",
     "description": "أدخل رابط Apps Script الخاص بالمشروع",
+    "url_label": "رابط Apps Script",
     "url_placeholder": "https://script.google.com/macros/s/…/exec",
     "url_required": "الرجاء إدخال رابط الخادم",
     "url_invalid": "الرابط يجب أن يبدأ بـ https://script.google.com",
@@ -352,7 +360,8 @@
   },
 
   "update": {
-    "available": "تحديث متاح — اضغط للتحديث"
+    "available": "إصدار جديد متاح",
+    "now": "تحديث الآن"
   },
 
   "placeholder": {

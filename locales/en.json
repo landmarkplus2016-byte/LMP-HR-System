@@ -43,7 +43,14 @@
     "leave": "Request Leave",
     "team": "My Team",
     "signout": "Sign Out",
-    "toggle_language": "Toggle language"
+    "toggle_language": "Toggle language",
+    "signed_in_as": "Signed in as"
+  },
+
+  "role": {
+    "employee": "Employee",
+    "manager": "Manager",
+    "hr": "HR Manager"
   },
 
   "loading": {
@@ -61,6 +68,7 @@
   "setup": {
     "title": "Server Setup",
     "description": "Enter your Apps Script Web App URL",
+    "url_label": "Apps Script URL",
     "url_placeholder": "https://script.google.com/macros/s/…/exec",
     "url_required": "Please enter the server URL",
     "url_invalid": "URL must start with https://script.google.com",
@@ -352,7 +360,8 @@
   },
 
   "update": {
-    "available": "Update available — tap to update"
+    "available": "A new version is available",
+    "now": "Update Now"
   },
 
   "placeholder": {

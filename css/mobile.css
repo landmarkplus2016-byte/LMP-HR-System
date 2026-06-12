@@ -56,6 +56,10 @@
   text-align: center;
 }
 
+.nav-tab.nav-active .nav-tab-label {
+  font-weight: var(--fw-bold);
+}
+
 /* Active indicator dot above the active tab */
 .nav-tab.nav-active::before {
   content: '';
@@ -163,21 +167,23 @@
   100% { transform: scale(1.35); opacity: 0;   }
 }
 
-/* Check-in button */
+/* Check-in button — gradient + glow ring, matches prototype exactly */
 .checkin-btn {
   position: relative;
   z-index: 1;
   width: 160px;
   height: 160px;
   border-radius: var(--r-full);
-  background: var(--c-primary);
+  background: linear-gradient(145deg, var(--c-primary) 0%, var(--c-primary-hover) 100%);
   color: var(--c-text-inverse);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  box-shadow: var(--shadow-lg), 0 0 0 6px var(--c-primary-dim);
+  box-shadow:
+    0 8px 40px oklch(0.62 0.195 254 / 0.35),
+    0 0 0 12px oklch(0.62 0.195 254 / 0.08);
   transition: transform var(--dur-fast), box-shadow var(--dur-fast), background var(--dur-base);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -185,7 +191,9 @@
 
 .checkin-btn:active:not(:disabled) {
   transform: scale(0.96);
-  box-shadow: var(--shadow-md), 0 0 0 4px var(--c-primary-dim);
+  box-shadow:
+    0 4px 20px oklch(0.62 0.195 254 / 0.30),
+    0 0 0 8px oklch(0.62 0.195 254 / 0.06);
 }
 
 .checkin-btn:disabled {

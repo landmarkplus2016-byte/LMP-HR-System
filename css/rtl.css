@@ -13,7 +13,7 @@
     inset-inline-start: auto;
     inset-inline-end: 0;
     border-inline-end: none;
-    border-inline-start: 1px solid var(--c-border);
+    border-inline-start: 1px solid rgba(255,255,255,0.06); /* dark sidebar: match opacity border */
   }
 
   [dir="rtl"] #app {

@@ -170,6 +170,17 @@ function _hideConnecting() {
 // The markup lives in index.html (#setup-screen). api.js owns show/hide/save.
 
 function _showSetupScreen() {
+  // Hydrate text nodes with the current locale (i18n is always loaded before
+  // this function is ever called, because post() runs after App.init() which
+  // calls loadI18n() first).
+  const _s = id => document.getElementById(id);
+  if (_s('setup-title'))     _s('setup-title').textContent     = (typeof t === 'function' ? t('setup.title')       : '') || 'إعداد الخادم';
+  if (_s('setup-desc'))      _s('setup-desc').textContent      = (typeof t === 'function' ? t('setup.description') : '') || 'أدخل رابط Apps Script الخاص بالمشروع';
+  if (_s('setup-url-label')) _s('setup-url-label').textContent = (typeof t === 'function' ? t('setup.url_label')   : '') || 'رابط Apps Script';
+  if (_s('setup-save-btn'))  _s('setup-save-btn').textContent  = (typeof t === 'function' ? t('setup.save')        : '') || 'حفظ';
+  const input = _s('setup-url-input');
+  if (input) input.placeholder = (typeof t === 'function' ? t('setup.url_placeholder') : '') || 'https://script.google.com/macros/s/…/exec';
+
   const screen = document.getElementById('setup-screen');
   if (screen) screen.hidden = false;
   // Hide the loading screen so the setup screen is not obscured
