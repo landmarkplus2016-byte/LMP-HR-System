@@ -921,7 +921,7 @@
   position: fixed;
   inset: 0;
   background: var(--c-overlay);
-  z-index: 800;
+  z-index: 1050;
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-out);
   pointer-events: none;
@@ -936,7 +936,7 @@
   position: fixed;
   inset: 0;
   background: var(--c-overlay);
-  z-index: 850;
+  z-index: 1200;
   display: flex;
   align-items: center;
   justify-content: center;

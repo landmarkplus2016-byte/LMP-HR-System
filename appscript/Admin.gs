@@ -261,25 +261,67 @@ function deleteHoliday(payload) {
 // ── CONFIG (Stage 5) ──────────────────────────────────────────────────────────
 // =============================================================================
 
+// Default values written to the Config tab on first setup.
+// These are the system-wide defaults — HR can override them from the PWA.
+const CONFIG_DEFAULTS = {
+  app_name:              'LMP Attendance',
+  company_name:          'Landmark Plus',
+  geofence_radius_m:     '150',
+  late_threshold_min:    '15',
+  gps_accuracy_max_m:    '200',
+  session_expiry_hours:  '8',
+  auto_checkout_enabled: 'FALSE',
+  offline_sync_enabled:  'TRUE',
+  primary_language:      'ar',
+  working_days:          'Sun,Mon,Tue,Wed,Thu',
+  biometric_required:    'TRUE'
+};
+
+// Get the Config sheet, creating it with headers + defaults if it doesn't exist.
+function _getOrCreateConfigSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName('Config');
+  if (!sheet) {
+    sheet = ss.insertSheet('Config');
+    sheet.appendRow(['key', 'value']);
+    Object.entries(CONFIG_DEFAULTS).forEach(function([k, v]) {
+      sheet.appendRow([k, v]);
+    });
+  } else if (sheet.getLastRow() < 2) {
+    // Sheet exists but is empty — add headers and defaults
+    sheet.appendRow(['key', 'value']);
+    Object.entries(CONFIG_DEFAULTS).forEach(function([k, v]) {
+      sheet.appendRow([k, v]);
+    });
+  }
+  return sheet;
+}
+
+// One-time setup: run this manually from the Apps Script editor (Run → setupConfigTab)
+// after creating the spreadsheet and before the first PWA login.
+function setupConfigTab() {
+  _getOrCreateConfigSheet();
+  Logger.log('Config tab ready.');
+}
+
 function updateConfig(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
   if (String(auth.employee.role || '').toLowerCase() !== 'hr') {
     return error('HR access required', 'يلزم صلاحية مدير الموارد البشرية');
   }
-  // api.js sends { updates: {...} }; accept either key for resilience
   const updates = payload.updates || payload.config;
   if (!updates || typeof updates !== 'object') {
     return error('updates object is required', 'كائن الإعدادات مطلوب');
   }
-  const sheet = getSheet('Config');
+  const sheet = _getOrCreateConfigSheet();
   const rows  = sheetToObjects(sheet);
-  Object.keys(updates).forEach(key => {
-    const row = rows.find(r => String(r.key) === key);
+  Object.keys(updates).forEach(function(key) {
+    const row = rows.find(function(r) { return String(r.key) === key; });
     if (row) {
       updateRow(sheet, row.__rowIndex, { value: String(updates[key]) });
     } else {
-      appendRow(sheet, { key, value: String(updates[key]) });
+      appendRow(sheet, { key: key, value: String(updates[key]) });
     }
   });
   return ok({ updated: Object.keys(updates) });

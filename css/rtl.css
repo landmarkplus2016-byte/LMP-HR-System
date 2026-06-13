@@ -39,7 +39,7 @@
   width: min(480px, 100vw);
   background: var(--c-surface);
   box-shadow: var(--shadow-xl);
-  z-index: 900;
+  z-index: 1100;
   transform: translateX(100%);   /* logical: off-screen to the right */
   transition: transform var(--dur-slow) var(--ease-out);
   overflow-y: auto;

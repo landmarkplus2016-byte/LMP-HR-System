@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="72" height="72">
+  <rect width="72" height="72" rx="16" fill="#1d4ed8"/>
+  <rect x="12" y="12" width="48" height="48" rx="10" fill="white"/>
+  <text x="36" y="42" font-family="Arial, sans-serif" font-size="18" font-weight="800"
+        fill="#1d4ed8" text-anchor="middle" dominant-baseline="middle">LMP</text>
+</svg>
