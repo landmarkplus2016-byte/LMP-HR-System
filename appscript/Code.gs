@@ -78,6 +78,7 @@ function route(action, payload) {
     case 'get_all_attendance':           return getAllAttendance(payload);
     case 'correct_attendance':           return correctAttendance(payload);
     case 'add_manual_attendance':        return addManualAttendance(payload);
+    case 'delete_attendance':            return deleteAttendance(payload);
     case 'get_flagged_records':          return getFlaggedRecords(payload);
 
     // ── Employees (Stage 4 / 5) ───────────────────────────────────────────

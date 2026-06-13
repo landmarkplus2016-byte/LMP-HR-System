@@ -349,6 +349,10 @@ async function apiGetFlaggedRecords() {
   return post('get_flagged_records', {});
 }
 
+async function apiDeleteAttendance(recordId) {
+  return post('delete_attendance', { record_id: recordId });
+}
+
 // ---------------------------------------------------------------------------
 // Leaves — Stage 3 / 4
 // ---------------------------------------------------------------------------

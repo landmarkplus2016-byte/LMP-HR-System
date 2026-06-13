@@ -481,6 +481,29 @@ function addManualAttendance(payload) {
 }
 
 // ---------------------------------------------------------------------------
+// deleteAttendance — HR only
+// ---------------------------------------------------------------------------
+// Payload: { session_token, record_id }
+// Permanently removes one row from the Attendance sheet.
+function deleteAttendance(payload) {
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+  if (String(auth.employee.role || '').toLowerCase() !== 'hr') {
+    return error('Access denied', 'غير مخوّل للوصول');
+  }
+
+  const recordId = String(payload.record_id || '').trim();
+  if (!recordId) return error('Record ID is required', 'معرّف السجل مطلوب');
+
+  const attSheet = getSheet('Attendance');
+  const record   = findRow(attSheet, 'id', recordId);
+  if (!record) return error('Attendance record not found', 'سجل الحضور غير موجود');
+
+  attSheet.deleteRow(record.__rowIndex);
+  return ok({ deleted: true, record_id: recordId });
+}
+
+// ---------------------------------------------------------------------------
 // getFlaggedRecords — HR only
 // ---------------------------------------------------------------------------
 // Payload: { session_token }

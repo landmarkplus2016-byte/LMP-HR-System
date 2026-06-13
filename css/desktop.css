@@ -35,7 +35,19 @@
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 100;
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.12) transparent;
   }
+
+  /* Chrome / Edge / Safari — ultra-thin translucent thumb, no visible track */
+  .nav-sidebar::-webkit-scrollbar        { width: 3px; }
+  .nav-sidebar::-webkit-scrollbar-track  { background: transparent; }
+  .nav-sidebar::-webkit-scrollbar-thumb  {
+    background: rgba(255,255,255,0.15);
+    border-radius: 99px;
+  }
+  .nav-sidebar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 
   .nav-sidebar-header {
     display: flex;

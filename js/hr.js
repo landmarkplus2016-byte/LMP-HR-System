@@ -747,13 +747,14 @@ function _openAttPanel(record) {
     document.getElementById('att-panel-bd').innerHTML = _renderCorrectionForm(record);
     document.getElementById('att-panel-title').textContent = t('attendance.correct');
     document.getElementById('att-correction-cancel')?.addEventListener('click', function() {
-      document.getElementById('att-panel-bd').innerHTML = _renderRecordDetail(record);
-      document.getElementById('att-panel-title').textContent = t('attendance.title');
+      _openAttPanel(record);
     });
     document.getElementById('att-correction-save')?.addEventListener('click', function() {
       _saveCorrectionForm(record);
     });
   });
+
+  _rewireDeleteBtn(record);
 
   overlay.classList.add('overlay-visible');
   panel.classList.add('panel-open');
@@ -767,6 +768,51 @@ function _closeAttPanel() {
   if (panel)   panel.classList.remove('panel-open');
   if (overlay) overlay.classList.remove('overlay-visible');
   _attSelRecord = null;
+}
+
+// Wire the delete button in the detail panel.
+// First click shows inline confirmation; confirm fires the API call.
+function _rewireDeleteBtn(record) {
+  const deleteBtn = document.getElementById('att-delete-btn');
+  if (!deleteBtn) return;
+
+  deleteBtn.addEventListener('click', function onDeleteClick() {
+    deleteBtn.removeEventListener('click', onDeleteClick);
+
+    const actions = deleteBtn.closest('.detail-actions');
+    if (!actions) return;
+
+    actions.innerHTML = `
+      <span style="font-size:var(--text-sm);color:var(--c-absent);flex:1">
+        ${t('attendance.delete_confirm') || 'Delete this record permanently?'}
+      </span>
+      <button class="btn btn-danger btn-sm" id="att-delete-confirm">
+        ${t('action.confirm') || 'Confirm'}
+      </button>
+      <button class="btn btn-ghost btn-sm" id="att-delete-cancel">
+        ${t('action.cancel') || 'Cancel'}
+      </button>`;
+
+    document.getElementById('att-delete-cancel')?.addEventListener('click', function() {
+      // Re-open the panel to restore all buttons and listeners cleanly
+      _openAttPanel(record);
+    });
+
+    document.getElementById('att-delete-confirm')?.addEventListener('click', async function() {
+      const btn = document.getElementById('att-delete-confirm');
+      if (btn) { btn.disabled = true; btn.textContent = t('action.loading') || '…'; }
+
+      const res = await apiDeleteAttendance(record.id);
+      if (res?.status === 'ok') {
+        _closeAttPanel();
+        if (typeof showToast === 'function') showToast(t('attendance.deleted') || 'Record deleted', 'success');
+        await _fetchAttRecords();
+      } else {
+        if (btn) { btn.disabled = false; btn.textContent = t('action.confirm') || 'Confirm'; }
+        if (typeof showToast === 'function') showToast(res?.message || t('error.server'), 'error');
+      }
+    });
+  }, { once: false });
 }
 
 function _renderRecordDetail(rec) {
@@ -856,6 +902,9 @@ function _renderRecordDetail(rec) {
     <div class="detail-actions">
       <button class="btn btn-secondary btn-sm" id="att-correct-btn">
         ✎ ${t('attendance.correct')}
+      </button>
+      <button class="btn btn-danger btn-sm" id="att-delete-btn" style="margin-inline-start:auto">
+        ${t('action.delete') || 'Delete'}
       </button>
     </div>`;
 }
