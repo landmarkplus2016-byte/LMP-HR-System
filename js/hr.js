@@ -1524,6 +1524,7 @@ function _renderEmpDetail(emp) {
     </div>
     <div class="detail-actions">
       <button class="btn btn-secondary btn-sm" id="emp-edit-btn">${t('action.edit')}</button>
+      <button class="btn btn-secondary btn-sm" id="emp-resetpw-btn">${t('employees.reset_password')}</button>
       ${isActive
         ? `<button class="btn btn-danger btn-sm" id="emp-deact-btn">${t('employees.deactivate')}</button>`
         : `<button class="btn btn-primary btn-sm" id="emp-react-btn">${t('employees.reactivate')}</button>`
@@ -1532,6 +1533,9 @@ function _renderEmpDetail(emp) {
 
   document.getElementById('emp-edit-btn')?.addEventListener('click', function() {
     _renderEmpEditForm(emp);
+  });
+  document.getElementById('emp-resetpw-btn')?.addEventListener('click', function() {
+    _renderEmpResetPwForm(emp);
   });
   document.getElementById('emp-deact-btn')?.addEventListener('click', function() {
     _empDeactTarget = emp.id;
@@ -1604,6 +1608,80 @@ function _renderEmpEditForm(emp) {
 
   document.getElementById('emp-save-edit').addEventListener('click', function() { _saveEmpEdit(emp); });
   document.getElementById('emp-back-btn').addEventListener('click', function() { _renderEmpDetail(emp); });
+}
+
+function _renderEmpResetPwForm(emp) {
+  const titleEl = document.getElementById('emp-panel-title');
+  const bd      = document.getElementById('emp-panel-bd');
+  titleEl.textContent = t('employees.reset_password');
+
+  bd.innerHTML = `
+    <div class="detail-emp-hd">
+      <div class="detail-avatar">${_initials(emp.name)}</div>
+      <div>
+        <div class="detail-emp-name">${_esc(emp.name)}</div>
+        <div class="detail-emp-dept" dir="ltr">${_esc(emp.username || '')}</div>
+      </div>
+    </div>
+    <div class="panel-form">
+      <div class="form-group">
+        <label>${t('employees.reset_pw_label')} <span class="form-required">*</span></label>
+        <input id="emp-new-pw" type="text" class="input" dir="ltr" autocomplete="off"
+          placeholder="${t('change_pw.req_length')}">
+      </div>
+      <div class="form-group">
+        <label class="wd-check-label" style="border:none;padding:0;gap:var(--sp-2)">
+          <input type="checkbox" id="emp-force-change" checked>
+          ${t('employees.reset_pw_force')}
+        </label>
+      </div>
+      <p id="emp-resetpw-err" class="form-field-error" hidden></p>
+      <div class="form-actions">
+        <button class="btn btn-primary btn-sm" id="emp-resetpw-save">${t('employees.reset_pw_confirm')}</button>
+        <button class="btn btn-ghost btn-sm" id="emp-resetpw-back">${t('action.back')}</button>
+      </div>
+    </div>`;
+
+  document.getElementById('emp-resetpw-back').addEventListener('click', function() {
+    _renderEmpDetail(emp);
+  });
+
+  document.getElementById('emp-resetpw-save').addEventListener('click', async function() {
+    const btn     = document.getElementById('emp-resetpw-save');
+    const errEl   = document.getElementById('emp-resetpw-err');
+    const newPw   = (document.getElementById('emp-new-pw')?.value || '').trim();
+    const force   = document.getElementById('emp-force-change')?.checked !== false;
+
+    errEl.hidden = true;
+
+    if (newPw.length < 8) {
+      errEl.textContent = t('error.pw_too_short');
+      errEl.hidden = false;
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = t('action.loading');
+
+    try {
+      const hash = await hashPassword(newPw);
+      const res  = await apiHrResetPassword(emp.id, hash, force);
+      if (res?.status === 'ok') {
+        showToast(t('employees.reset_pw_success'), 'success');
+        _renderEmpDetail(emp);
+      } else {
+        errEl.textContent = res?.message || t('error.server');
+        errEl.hidden = false;
+        btn.disabled = false;
+        btn.textContent = t('employees.reset_pw_confirm');
+      }
+    } catch (_) {
+      errEl.textContent = t('error.network');
+      errEl.hidden = false;
+      btn.disabled = false;
+      btn.textContent = t('employees.reset_pw_confirm');
+    }
+  });
 }
 
 function _renderEmpAddForm() {
@@ -2011,9 +2089,9 @@ function _initLocPickerMap(existingLoc) {
     if (!isNaN(lat) && !isNaN(lng)) center = [lat, lng];
   }
 
-  _locPickerMap = L.map(el).setView(center, 15);
+  _locPickerMap = L.map(el, { attributionControl: false }).setView(center, 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap', maxZoom: 19
+    maxZoom: 19
   }).addTo(_locPickerMap);
 
   if (existingLoc) {

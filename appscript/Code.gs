@@ -89,6 +89,7 @@ function route(action, payload) {
     case 'update_employee':              return updateEmployee(payload);
     case 'deactivate_employee':          return deactivateEmployee(payload);
     case 'reactivate_employee':          return reactivateEmployee(payload);
+    case 'hr_reset_password':            return hrResetPassword(payload);
 
     // ── Leaves (Stage 3 / 4) ─────────────────────────────────────────────
     case 'submit_leave':                 return submitLeave(payload);

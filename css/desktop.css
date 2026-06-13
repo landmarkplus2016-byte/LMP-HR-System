@@ -14,6 +14,8 @@
   #app {
     flex: 1;
     min-width: 0;
+    padding-block-start: var(--sp-8);
+    padding-inline: var(--sp-8);
     padding-block-end: 0;
     margin-inline-start: var(--sidebar-w);
     overflow-y: auto;
@@ -234,10 +236,19 @@
   }
 
   /* ── Desktop content area ─────────────────────────────────────────────────── */
+  /* Padding lives on #app so both view-content and view-hd layouts get it.     */
   .view-content {
     width: 100%;
-    padding: var(--sp-8);
+    padding: 0;
     max-width: 1200px;
+  }
+
+  /* Page header used by view-hd pattern screens (Employees, Locations, etc.)   */
+  .view-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-end: var(--sp-6);
   }
 
   .view-header {
@@ -539,7 +550,8 @@
   .activity-row-skeleton:last-child { border-block-end: none; }
 
   /* ── Data table ───────────────────────────────────────────────────────────── */
-  .data-table-wrap {
+  .data-table-wrap,
+  .table-wrap {
     background: var(--c-surface);
     border-radius: var(--r-lg);
     border: 1px solid var(--c-border);
@@ -601,6 +613,14 @@
     flex-wrap: wrap;
   }
 
+  /* Employees toolbar uses table-search-wrap + table-search-input;
+     other screens use table-toolbar-search directly as the flex child. */
+  .table-search-wrap {
+    flex: 1;
+    min-width: 180px;
+    max-width: 320px;
+  }
+
   .table-toolbar-search {
     flex: 1;
     min-width: 180px;
@@ -615,7 +635,20 @@
     transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
   }
 
-  .table-toolbar-search:focus {
+  .table-search-input {
+    width: 100%;
+    padding: var(--sp-2) var(--sp-3);
+    font-size: var(--text-sm);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+    background: var(--c-surface-raised);
+    color: var(--c-text);
+    outline: none;
+    transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+  }
+
+  .table-toolbar-search:focus,
+  .table-search-input:focus {
     border-color: var(--c-primary);
     box-shadow: 0 0 0 3px var(--c-primary-dim);
   }
@@ -1045,10 +1078,20 @@
   .data-table tbody tr.row-inactive { opacity: 0.45; }
   .data-table tbody tr.row-inactive:hover { opacity: 0.7; }
 
+  /* ── Empty-state table cell ────────────────────────────────────────────────── */
+  .table-empty {
+    text-align: center;
+    padding: var(--sp-10) var(--sp-8);
+    color: var(--c-text-muted);
+    font-size: var(--text-sm);
+    cursor: default;
+  }
+
   /* ── Location map ─────────────────────────────────────────────────────────── */
   .loc-map-wrap {
     border-radius: var(--r-lg);
     overflow: hidden;
+    position: relative;
     border: 1px solid var(--c-border);
     margin-block-end: var(--sp-5);
     box-shadow: var(--shadow-sm);
@@ -1066,6 +1109,7 @@
     border: 1px solid var(--c-border);
     margin-block-end: var(--sp-3);
     overflow: hidden;
+    position: relative;  /* scopes Leaflet's absolutely-positioned controls */
   }
 
   /* ── Holiday calendar ─────────────────────────────────────────────────────── */

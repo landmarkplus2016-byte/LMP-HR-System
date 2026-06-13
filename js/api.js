@@ -401,6 +401,14 @@ async function apiUpdateEmployee(employeeId, updates) {
   return post('update_employee', { employee_id: employeeId, ...updates });
 }
 
+async function apiHrResetPassword(employeeId, newPasswordHash, forceChange) {
+  return post('hr_reset_password', {
+    employee_id:       employeeId,
+    new_password_hash: newPasswordHash,
+    force_change:      forceChange !== false ? 'true' : 'false'
+  });
+}
+
 async function apiDeactivateEmployee(employeeId) {
   return post('deactivate_employee', { employee_id: employeeId });
 }

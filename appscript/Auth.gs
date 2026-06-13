@@ -205,6 +205,47 @@ function createSession(employeeId, role, deviceId) {
 }
 
 // ---------------------------------------------------------------------------
+// hrResetPassword  (HR-only — sets a new password for any employee)
+// ---------------------------------------------------------------------------
+// Payload: { session_token, device_id, employee_id, new_password_hash, force_change }
+// force_change: 'true' (default) → employee must change on next login
+function hrResetPassword(payload) {
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+
+  if (String(auth.employee.role).toLowerCase() !== 'hr') {
+    return error('Access denied — HR role required', 'رفض الوصول — يلزم دور مدير الموارد البشرية');
+  }
+
+  const employeeId  = String(payload.employee_id       || '').trim();
+  const newHash     = String(payload.new_password_hash  || '').trim();
+  const forceChange = String(payload.force_change || 'true').toUpperCase() !== 'FALSE';
+
+  if (!employeeId || !newHash) {
+    return error('Missing required fields', 'الحقول المطلوبة مفقودة');
+  }
+
+  const empSheet = getSheet('Employees');
+  const employee  = findRow(empSheet, 'id', employeeId);
+
+  if (!employee) {
+    return error('Employee not found', 'الموظف غير موجود');
+  }
+
+  if (employee.id === auth.employee.id) {
+    return error('Use "Change Password" to update your own password',
+                 'استخدم "تغيير كلمة المرور" لتحديث كلمة مرورك الخاصة');
+  }
+
+  updateRow(empSheet, employee.__rowIndex, {
+    password_hash:         newHash,
+    force_password_change: forceChange ? 'TRUE' : 'FALSE'
+  });
+
+  return ok({ reset: true, employee_id: employeeId });
+}
+
+// ---------------------------------------------------------------------------
 // getConfig  (public — no session required)
 // ---------------------------------------------------------------------------
 function getConfig(payload) {

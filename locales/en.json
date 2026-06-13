@@ -187,7 +187,12 @@
     "temp_password": "Temporary password",
     "manager": "Manager",
     "no_employees": "No employees found",
-    "search": "Search employees"
+    "search": "Search employees",
+    "reset_password": "Reset Password",
+    "reset_pw_label": "New temporary password",
+    "reset_pw_force": "Require password change on next login",
+    "reset_pw_confirm": "Reset Password",
+    "reset_pw_success": "Password reset successfully"
   },
 
   "locations": {
