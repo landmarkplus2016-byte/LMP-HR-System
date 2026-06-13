@@ -6,22 +6,13 @@
    where a directional visual change is needed beyond property flipping.
    ============================================================================= */
 
-/* ── Sidebar: flip to the right side in RTL ─────────────────────────────────── */
-@media (min-width: 900px) {
-
-  [dir="rtl"] .nav-sidebar {
-    inset-inline-start: auto;
-    inset-inline-end: 0;
-    border-inline-end: none;
-    border-inline-start: 1px solid rgba(255,255,255,0.06); /* dark sidebar: match opacity border */
-  }
-
-  [dir="rtl"] #app {
-    margin-inline-start: 0;
-    margin-inline-end: var(--sidebar-w);
-  }
-
-}
+/* ── Sidebar: no overrides needed ────────────────────────────────────────────── */
+/* desktop.css uses CSS logical properties throughout:                           */
+/*   inset-inline-start: 0  →  RTL resolves to  right: 0  (sidebar at right)   */
+/*   margin-inline-start: w →  RTL resolves to  margin-right: w                 */
+/*   border-inline-end      →  RTL resolves to  border-left (inner edge)        */
+/* Adding [dir="rtl"] overrides here would break what logical properties         */
+/* already do correctly — so this section is intentionally empty.                */
 
 /* ── Directional icons that imply "forward" ──────────────────────────────────── */
 /* Chevrons and arrows should mirror in RTL so they point the correct direction */
