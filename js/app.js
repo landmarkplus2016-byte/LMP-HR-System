@@ -166,6 +166,7 @@ App.init = async function () {
       const result = await apiValidateSession(token);
       if (result && result.status === 'ok') {
         _activateUser(result.data.employee);
+        _loadLocations();
         hideLoadingScreen();
         renderNav();
         handleRoute();
@@ -175,6 +176,7 @@ App.init = async function () {
       // api.js not built yet — trust the cached user (dev convenience only)
       const user = JSON.parse(userRaw);
       _activateUser(user);
+      _loadLocations();
       hideLoadingScreen();
       renderNav();
       handleRoute();
@@ -195,6 +197,19 @@ function _activateUser(employee) {
   App.currentUser = employee;
   App.currentRole = employee.role;
   localStorage.setItem('lmp_user', JSON.stringify(employee));
+}
+
+// Load active locations from Apps Script and cache in window.appLocations.
+// Called after every successful authentication so checkGPS() has data.
+function _loadLocations() {
+  if (typeof apiGetLocations !== 'function') return;
+  apiGetLocations()
+    .then(result => {
+      if (result && result.status === 'ok' && Array.isArray(result.data?.locations)) {
+        window.appLocations = result.data.locations;
+      }
+    })
+    .catch(() => {});
 }
 
 // Clear local auth state
@@ -407,6 +422,7 @@ function updateNavActive(hash) {
 // Called when a login succeeds — sets state, renders nav, routes to home
 function onLoginSuccess(employee) {
   _activateUser(employee);
+  _loadLocations();
   renderNav();
   window.location.hash = getHomeHash(employee.role);
 }
