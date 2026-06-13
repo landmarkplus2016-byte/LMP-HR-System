@@ -890,6 +890,106 @@
   margin-block-end: var(--sp-3);
 }
 
+/* ── Scrollable bottom nav for HR (many items) ──────────────────────────── */
+.nav-bottom.nav-bottom-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  justify-content: flex-start;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nav-bottom.nav-bottom-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-bottom.nav-bottom-scroll .nav-tab {
+  flex: 0 0 64px;
+  min-width: 64px;
+}
+
+.nav-bottom.nav-bottom-scroll .nav-tab-label {
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 58px;
+}
+
+/* ── Panel / modal overlays — must work on all screen sizes ─────────────── */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--c-overlay);
+  z-index: 800;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+
+.panel-overlay.overlay-visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--c-overlay);
+  z-index: 850;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay[hidden] { display: none; }
+
+/* ── Modal dialog — base styles for all screen sizes ───────────────────── */
+.modal {
+  background: var(--c-surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xl);
+  width: calc(100vw - var(--sp-8));
+  max-width: 480px;
+  max-height: 90dvh;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-block-end: 1px solid var(--c-border);
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: var(--text-md);
+  font-weight: var(--fw-semi);
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-bd {
+  padding: var(--sp-5);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.modal-ft {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5);
+  border-block-start: 1px solid var(--c-border);
+  flex-shrink: 0;
+}
+
 /* ── Mobile view padding ────────────────────────────────────────────────────── */
 @media (max-width: 899px) {
   #app {
@@ -916,5 +1016,22 @@
   .view-title {
     font-size: var(--text-md);
     font-weight: var(--fw-semi);
+  }
+
+  /* HR views: view-hd (title + action button row) */
+  .view-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+    margin-block-end: var(--sp-4);
+  }
+
+  /* Data tables scroll horizontally on mobile */
+  .table-wrap,
+  .data-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }

@@ -361,10 +361,12 @@ function _renderSidebar(nav, app, items, curHash) {
 function _renderBottomNav(nav, app, items, curHash) {
   nav.className = 'nav-bottom';
 
-  // Mobile shows first 4 items only; HR on mobile (rare) shows first 4
-  const visible = items.slice(0, 4);
+  // HR has 11 items — compact scrollable layout
+  if (items.length > 4) {
+    nav.classList.add('nav-bottom-scroll');
+  }
 
-  visible.forEach(item => {
+  items.forEach(item => {
     const a = document.createElement('a');
     a.href      = `#${item.hash}`;
     a.className = `nav-tab${curHash === item.hash ? ' nav-active' : ''}`;
@@ -374,6 +376,17 @@ function _renderBottomNav(nav, app, items, curHash) {
       <span class="nav-tab-label">${t(item.labelKey)}</span>`;
     nav.appendChild(a);
   });
+
+  // Signout tab — always last on mobile
+  const signoutBtn = document.createElement('button');
+  signoutBtn.type      = 'button';
+  signoutBtn.id        = 'signout-btn';
+  signoutBtn.className = 'nav-tab';
+  signoutBtn.setAttribute('aria-label', t('nav.signout') || 'تسجيل الخروج');
+  signoutBtn.innerHTML = `
+    <span class="nav-tab-icon">${Icons.signout}</span>
+    <span class="nav-tab-label">${t('nav.signout') || 'تسجيل الخروج'}</span>`;
+  nav.appendChild(signoutBtn);
 
   app.classList.add('app-with-bottom-nav');
   app.classList.remove('app-with-sidebar');

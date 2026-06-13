@@ -1271,6 +1271,7 @@ let _empDeactTarget = null;
 
 async function renderEmployees(container) {
   container.innerHTML = `
+    <div class="view-content">
     <div class="view-hd">
       <h1 class="view-title">${t('employees.title')}</h1>
     </div>
@@ -1320,6 +1321,7 @@ async function renderEmployees(container) {
           <button class="btn btn-ghost btn-sm" id="emp-deact-cancel">${t('action.cancel')}</button>
         </div>
       </div>
+    </div>
     </div>
   `;
 
@@ -1866,6 +1868,7 @@ let _locPickerMkr  = null;
 
 async function renderLocations(container) {
   container.innerHTML = `
+    <div class="view-content">
     <div class="view-hd">
       <h1 class="view-title">${t('locations.title')}</h1>
       <button id="loc-add-btn" class="btn btn-primary btn-sm">+ ${t('locations.add')}</button>
@@ -1895,6 +1898,7 @@ async function renderLocations(container) {
         <button class="btn-icon" id="loc-panel-close" aria-label="${t('action.close')}">✕</button>
       </div>
       <div class="slide-panel-bd" id="loc-panel-bd"></div>
+    </div>
     </div>`;
 
   document.getElementById('loc-add-btn').addEventListener('click', function() { _openLocPanel(null); });
@@ -2200,6 +2204,7 @@ async function renderHolidays(container) {
   _holYear = new Date().getFullYear();
 
   container.innerHTML = `
+    <div class="view-content">
     <div class="view-hd">
       <h1 class="view-title">${t('holidays.title')}</h1>
     </div>
@@ -2219,6 +2224,7 @@ async function renderHolidays(container) {
         <div class="modal-bd" id="hol-modal-bd"></div>
         <div class="modal-ft" id="hol-modal-ft"></div>
       </div>
+    </div>
     </div>`;
 
   document.getElementById('hol-prev-yr').addEventListener('click', async function() {
@@ -2389,11 +2395,13 @@ async function _deleteHolAndRefresh(holidayId) {
 
 async function renderConfig(container) {
   container.innerHTML = `
+    <div class="view-content">
     <div class="view-hd">
       <h1 class="view-title">${t('config.title')}</h1>
     </div>
     <div id="cfg-wrap">
       <p style="color:var(--c-text-muted);font-size:var(--text-sm)">${t('action.loading')}</p>
+    </div>
     </div>`;
 
   const cfg = window.appConfig || {};
@@ -2570,6 +2578,7 @@ let _deptShiftList  = [];
 
 async function renderDepartments(container) {
   container.innerHTML = `
+    <div class="view-content">
     <div class="view-hd">
       <h1 class="view-title">${t('departments.title')}</h1>
       <button id="dept-add-btn" class="btn btn-primary btn-sm">+ ${t('departments.add')}</button>
@@ -2592,6 +2601,7 @@ async function renderDepartments(container) {
         <button class="btn-icon" id="dept-panel-close" aria-label="${t('action.close')}">✕</button>
       </div>
       <div class="slide-panel-bd" id="dept-panel-bd"></div>
+    </div>
     </div>`;
 
   document.getElementById('dept-add-btn').addEventListener('click', function() { _openDeptPanel(null); });
@@ -2729,6 +2739,7 @@ let _shiftAllRecords = [];
 
 async function renderShifts(container) {
   container.innerHTML = `
+    <div class="view-content">
     <div class="view-hd">
       <h1 class="view-title">${t('shifts.title')}</h1>
       <button id="shift-add-btn" class="btn btn-primary btn-sm">+ ${t('shifts.add')}</button>
@@ -2753,6 +2764,7 @@ async function renderShifts(container) {
         <button class="btn-icon" id="shift-panel-close" aria-label="${t('action.close')}">✕</button>
       </div>
       <div class="slide-panel-bd" id="shift-panel-bd"></div>
+    </div>
     </div>`;
 
   document.getElementById('shift-add-btn').addEventListener('click', function() { _openShiftPanel(null); });
