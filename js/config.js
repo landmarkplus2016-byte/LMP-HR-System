@@ -23,7 +23,7 @@ const _DEFAULTS = {
   auto_checkout_enabled: 'false',
   offline_sync_enabled:  'true',
   primary_language:      'ar',
-  working_days:          'Sun,Mon,Tue,Wed,Thu',
+  working_days:          '0,1,2,3,4',
   biometric_required:    'true',
 };
 

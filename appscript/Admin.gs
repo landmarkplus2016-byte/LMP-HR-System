@@ -273,35 +273,56 @@ const CONFIG_DEFAULTS = {
   auto_checkout_enabled: 'FALSE',
   offline_sync_enabled:  'TRUE',
   primary_language:      'ar',
-  working_days:          'Sun,Mon,Tue,Wed,Thu',
+  working_days:          '0,1,2,3,4',
   biometric_required:    'TRUE'
 };
 
-// Get the Config sheet, creating it with headers + defaults if it doesn't exist.
+// Get the Config sheet. Creates it (or rebuilds it) in the correct 2-column
+// key-value format if it is missing, empty, or has the wrong wide layout
+// (where keys were written as column headers instead of row values).
 function _getOrCreateConfigSheet() {
   const ss = getSpreadsheet();
   let sheet = ss.getSheetByName('Config');
+
+  const _build = function(sh) {
+    sh.clearContents();
+    sh.appendRow(['key', 'value']);
+    Object.entries(CONFIG_DEFAULTS).forEach(function(entry) {
+      sh.appendRow([entry[0], entry[1]]);
+    });
+  };
+
   if (!sheet) {
     sheet = ss.insertSheet('Config');
-    sheet.appendRow(['key', 'value']);
-    Object.entries(CONFIG_DEFAULTS).forEach(function([k, v]) {
-      sheet.appendRow([k, v]);
-    });
-  } else if (sheet.getLastRow() < 2) {
-    // Sheet exists but is empty — add headers and defaults
-    sheet.appendRow(['key', 'value']);
-    Object.entries(CONFIG_DEFAULTS).forEach(function([k, v]) {
-      sheet.appendRow([k, v]);
-    });
+    _build(sheet);
+  } else {
+    const firstCell = String(sheet.getRange(1, 1).getValue()).trim();
+    const wrongLayout = (firstCell !== 'key' && firstCell !== '');
+    const isEmpty = sheet.getLastRow() < 2;
+
+    if (wrongLayout || isEmpty) {
+      // Wrong wide layout (keys as columns) or empty — rebuild correctly
+      _build(sheet);
+    }
   }
   return sheet;
 }
 
-// One-time setup: run this manually from the Apps Script editor (Run → setupConfigTab)
-// after creating the spreadsheet and before the first PWA login.
+// Run this once from Apps Script editor: Run → setupConfigTab
+// It rebuilds the Config tab in the correct 2-column format with all defaults.
 function setupConfigTab() {
-  _getOrCreateConfigSheet();
-  Logger.log('Config tab ready.');
+  const sheet = getSpreadsheet().getSheetByName('Config');
+  if (sheet) {
+    sheet.clearContents();
+    sheet.appendRow(['key', 'value']);
+    Object.entries(CONFIG_DEFAULTS).forEach(function(entry) {
+      sheet.appendRow([entry[0], entry[1]]);
+    });
+    Logger.log('Config tab rebuilt in correct key-value format.');
+  } else {
+    _getOrCreateConfigSheet();
+    Logger.log('Config tab created.');
+  }
 }
 
 function updateConfig(payload) {

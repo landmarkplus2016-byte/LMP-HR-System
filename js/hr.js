@@ -2404,7 +2404,7 @@ async function renderConfig(container) {
     </div>
     </div>`;
 
-  const cfg = window.appConfig || {};
+  const cfg = (typeof getConfig === 'function') ? getConfig() : {};
   _renderConfigForm(cfg);
 }
 window.renderConfig = renderConfig;
@@ -2555,7 +2555,9 @@ async function _saveConfig() {
   if (btn)   { btn.disabled = false; btn.textContent = t('config.save'); }
 
   if (res?.status === 'ok') {
-    if (window.appConfig) Object.assign(window.appConfig, updates);
+    if (typeof setCachedConfig === 'function') {
+      setCachedConfig(Object.assign({}, (typeof getConfig === 'function' ? getConfig() : {}), updates));
+    }
     if (msgEl) {
       msgEl.style.cssText = 'display:block;color:var(--c-present);font-weight:var(--fw-medium)';
       msgEl.textContent = '✓ ' + t('action.save');
