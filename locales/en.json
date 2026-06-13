@@ -115,6 +115,7 @@
     "filter_employee": "Filter by employee",
     "correct": "Correct",
     "add_manual": "Add manual",
+    "manual_saved": "Attendance record saved successfully",
     "flagged": "Flagged records",
     "hr_note": "HR note"
   },

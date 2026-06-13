@@ -952,6 +952,11 @@ function _openManualModal() {
   const bd = document.getElementById('manual-modal-bd');
   if (!bd) return;
 
+  if (_attEmployees.length === 0) {
+    showToast(t('error.server') || 'Employee list not loaded. Please reload the page.', 'error');
+    return;
+  }
+
   const empOptions = _attEmployees
     .filter(function(e) { return String(e.active || '').toUpperCase() !== 'FALSE'; })
     .sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); })
@@ -1064,14 +1069,19 @@ async function _saveManualRecord() {
     empId, date, checkIn, checkOut || null, locationId || null, hrNote
   );
 
+  console.log('[Manual save] response:', res);
+
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = t('action.save'); }
 
-  if (res?.status !== 'ok') {
-    _showErr(noteErr, res?.error || t('error.server'));
+  if (!res || res.status !== 'ok') {
+    const errMsg = (res && res.message) || t('error.server');
+    _showErr(noteErr, errMsg);
+    showToast(errMsg, 'error');
     return;
   }
 
   _closeManualModal();
+  showToast(t('attendance.manual_saved') || 'Record saved', 'success');
   await _fetchAttRecords();
 }
 
