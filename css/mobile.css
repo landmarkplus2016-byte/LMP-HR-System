@@ -1014,6 +1014,17 @@
     z-index: 10;
   }
 
+  /* When view-header is a direct child of view-content (HR views pattern),
+     negate the parent's padding so the header spans the full viewport width
+     and the sticky element has no side gaps when scrolling.
+     margin-block-end restores the 16px gap below the header that the
+     view-content's top padding would normally provide in the correct pattern. */
+  .view-content > .view-header {
+    margin-inline: calc(-1 * var(--sp-4));
+    margin-block-start: calc(-1 * var(--sp-4));
+    margin-block-end: var(--sp-4);
+  }
+
   .view-title {
     font-size: var(--text-md);
     font-weight: var(--fw-semi);
