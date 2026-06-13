@@ -998,6 +998,7 @@
 
   .view-content {
     padding: var(--sp-4);
+    padding-block-end: var(--sp-10);
     max-width: 100%;
   }
 
@@ -1558,13 +1559,18 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--sp-3) var(--sp-4);
+  border-block-start: 1px solid var(--c-border);
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+/* When pagination is a direct child of the page (outside a card), give it card styling */
+.view-content > .pagination-bar {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-block-start: none;
   border-radius: 0 0 var(--r-lg) var(--r-lg);
   box-shadow: var(--shadow-sm);
-  flex-wrap: wrap;
-  gap: var(--sp-2);
 }
 
 .pagination-info {

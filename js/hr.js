@@ -273,6 +273,12 @@ function _updateNavBadge(count) {
 // Utility helpers
 // =============================================================================
 
+// Returns current local time as HH:MM (for pre-filling time inputs)
+function _nowTimeHHMM() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
 // Returns today as YYYY-MM-DD in local time
 function _isoToday() {
   const d = new Date();
@@ -517,9 +523,8 @@ async function renderAttendanceRecords(container) {
           </thead>
           <tbody id="att-tbody">${_skeletonTableRows(8, 7)}</tbody>
         </table>
-      </div>
-
       <div class="pagination-bar" id="att-pagination" hidden></div>
+      </div>
     </div>
 
     <div class="panel-overlay" id="att-overlay"></div>
@@ -969,6 +974,7 @@ function _openManualModal() {
         <option value="">— ${t('attendance.filter_employee')} —</option>
         ${empOptions}
       </select>
+      <span class="form-field-error" id="manual-emp-err" hidden></span>
     </div>
 
     <div class="form-row">
@@ -992,7 +998,8 @@ function _openManualModal() {
         <label for="manual-ci">
           ${t('attendance.check_in')}<span class="form-required">*</span>
         </label>
-        <input type="time" id="manual-ci">
+        <input type="time" id="manual-ci" value="${_nowTimeHHMM()}">
+        <span class="form-field-error" id="manual-ci-err" hidden></span>
       </div>
       <div class="form-group">
         <label for="manual-co">${t('attendance.check_out')}</label>
@@ -1019,31 +1026,39 @@ function _closeManualModal() {
 }
 
 async function _saveManualRecord() {
-  const empId  = (document.getElementById('manual-emp')?.value   || '').trim();
-  const date   = (document.getElementById('manual-date')?.value  || '').trim();
-  const checkIn = (document.getElementById('manual-ci')?.value   || '').trim();
-  const hrNote = (document.getElementById('manual-note')?.value  || '').trim();
+  const empId   = (document.getElementById('manual-emp')?.value   || '').trim();
+  const date    = (document.getElementById('manual-date')?.value  || '').trim();
+  const checkIn = (document.getElementById('manual-ci')?.value    || '').trim();
+  const hrNote  = (document.getElementById('manual-note')?.value  || '').trim();
 
+  const empErr  = document.getElementById('manual-emp-err');
+  const ciErr   = document.getElementById('manual-ci-err');
   const noteErr = document.getElementById('manual-note-err');
 
-  // Validate required fields
-  let firstInvalid = null;
-  if (!empId)   firstInvalid = firstInvalid || document.getElementById('manual-emp');
-  if (!date)    firstInvalid = firstInvalid || document.getElementById('manual-date');
-  if (!checkIn) firstInvalid = firstInvalid || document.getElementById('manual-ci');
-  if (!hrNote) {
-    if (noteErr) { noteErr.textContent = t('error.required_field'); noteErr.hidden = false; }
-    firstInvalid = firstInvalid || document.getElementById('manual-note');
-  } else {
-    if (noteErr) noteErr.hidden = true;
+  const _showErr = function(el, msg) { if (el) { el.textContent = msg; el.hidden = false; } };
+  const _hideErr = function(el)      { if (el) el.hidden = true; };
+
+  let valid = true;
+  if (!empId)   { _showErr(empErr,  t('error.required_field')); valid = false; }
+  else           { _hideErr(empErr); }
+  if (!checkIn) { _showErr(ciErr,   t('error.required_field')); valid = false; }
+  else           { _hideErr(ciErr); }
+  if (!hrNote)  { _showErr(noteErr, t('error.required_field')); valid = false; }
+  else           { _hideErr(noteErr); }
+
+  if (!valid) {
+    const firstInvalid = !empId   ? document.getElementById('manual-emp')
+                       : !checkIn ? document.getElementById('manual-ci')
+                                  : document.getElementById('manual-note');
+    if (firstInvalid) firstInvalid.focus();
+    return;
   }
-  if (firstInvalid) { firstInvalid.focus(); return; }
 
   const saveBtn = document.getElementById('manual-save-btn');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = t('action.loading'); }
 
-  const checkOut  = (document.getElementById('manual-co')?.value  || '').trim();
-  const locationId = (document.getElementById('manual-loc')?.value || '').trim();
+  const checkOut   = (document.getElementById('manual-co')?.value   || '').trim();
+  const locationId = (document.getElementById('manual-loc')?.value  || '').trim();
 
   const res = await apiAddManualAttendance(
     empId, date, checkIn, checkOut || null, locationId || null, hrNote
@@ -1052,7 +1067,7 @@ async function _saveManualRecord() {
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = t('action.save'); }
 
   if (res?.status !== 'ok') {
-    if (noteErr) { noteErr.textContent = res?.error || t('error.server'); noteErr.hidden = false; }
+    _showErr(noteErr, res?.error || t('error.server'));
     return;
   }
 
@@ -1275,14 +1290,15 @@ async function renderEmployees(container) {
     <div class="view-hd">
       <h1 class="view-title">${t('employees.title')}</h1>
     </div>
-    <div class="table-toolbar">
-      <div class="table-search-wrap">
-        <input id="emp-search" type="search" class="table-search-input"
-          placeholder="${t('employees.search')}">
+    <div class="data-table-wrap">
+      <div class="table-toolbar" id="emp-toolbar">
+        <input id="emp-search" type="search" class="table-toolbar-search"
+          placeholder="${t('employees.search')}" autocomplete="off">
+        <div class="table-toolbar-actions">
+          <span class="count-badge" id="emp-count">—</span>
+          <button id="emp-add-btn" class="btn btn-primary btn-sm">+ ${t('employees.add')}</button>
+        </div>
       </div>
-      <button id="emp-add-btn" class="btn btn-primary btn-sm">+ ${t('employees.add')}</button>
-    </div>
-    <div class="table-wrap">
       <table class="data-table">
         <thead><tr>
           <th>${t('employees.name')}</th>
@@ -1295,8 +1311,8 @@ async function renderEmployees(container) {
         </tr></thead>
         <tbody id="emp-tbody">${_skeletonTableRows(10, 7)}</tbody>
       </table>
+      <div id="emp-pagination" class="pagination-bar" hidden></div>
     </div>
-    <div id="emp-pagination" class="pagination-bar" hidden></div>
 
     <div class="panel-overlay" id="emp-overlay"></div>
     <div class="slide-panel" id="emp-panel" role="dialog" aria-modal="true">
@@ -1383,6 +1399,9 @@ function _renderEmpTable() {
   const tbody  = document.getElementById('emp-tbody');
   const paginEl = document.getElementById('emp-pagination');
   if (!tbody) return;
+
+  const countEl = document.getElementById('emp-count');
+  if (countEl) countEl.textContent = _empFiltered.length;
 
   const shiftMap = {};
   _empShifts.forEach(function(s) { shiftMap[s.id] = s.name; });
@@ -1874,10 +1893,10 @@ async function renderLocations(container) {
       <button id="loc-add-btn" class="btn btn-primary btn-sm">+ ${t('locations.add')}</button>
     </div>
     <div class="loc-map-wrap"><div id="loc-map" class="loc-map"></div></div>
-    <div class="table-toolbar">
-      <span class="count-badge" id="loc-count-badge"></span>
-    </div>
-    <div class="table-wrap">
+    <div class="data-table-wrap">
+      <div class="table-toolbar">
+        <span class="count-badge" id="loc-count-badge"></span>
+      </div>
       <table class="data-table">
         <thead><tr>
           <th>${t('locations.name')}</th>

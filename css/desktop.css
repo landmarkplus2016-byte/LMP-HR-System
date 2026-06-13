@@ -239,7 +239,7 @@
   /* Padding lives on #app so both view-content and view-hd layouts get it.     */
   .view-content {
     width: 100%;
-    padding: 0;
+    padding: 0 0 var(--sp-12) 0;
     max-width: 1200px;
   }
 
@@ -256,6 +256,8 @@
     align-items: center;
     justify-content: space-between;
     margin-block-end: var(--sp-6);
+    background: var(--c-bg);
+    padding-block-end: var(--sp-4);
   }
 
   .view-title {
@@ -313,10 +315,10 @@
     border-radius: var(--r-lg);
     border: 1px solid var(--c-border);
     border-inline-start-width: 3px;
-    padding: var(--sp-5);
+    padding: var(--sp-3) var(--sp-4);
     display: flex;
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-2);
     box-shadow: var(--shadow-sm);
     transition: box-shadow var(--dur-fast);
   }
@@ -367,8 +369,8 @@
   .stat-icon-leave   { background: var(--c-leave-bg);   color: var(--c-leave);   }
 
   .stat-card-value {
-    font-size: var(--text-2xl);
-    font-weight: var(--fw-black);   /* 800 — heavier, matches prototype */
+    font-size: 1.75rem;
+    font-weight: var(--fw-black);
     color: var(--c-text);
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -971,6 +973,11 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--sp-3) var(--sp-5);
+    border-block-start: 1px solid var(--c-border);
+  }
+
+  /* Standalone pagination (outside a card) gets its own card styling */
+  .view-content > .pagination-bar {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
     border-block-start: none;
