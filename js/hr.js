@@ -101,8 +101,8 @@ async function _fetchAndRenderDashboard() {
   ]);
 
   // ── Parse attendance ───────────────────────────────────────────────────────
-  const records = (attendanceRes?.status === 'ok' && Array.isArray(attendanceRes.data))
-    ? attendanceRes.data
+  const records = (attendanceRes?.status === 'ok' && Array.isArray(attendanceRes.data?.records))
+    ? attendanceRes.data.records
     : [];
 
   const counts = { present: 0, absent: 0, late: 0, on_leave: 0 };
@@ -115,8 +115,8 @@ async function _fetchAndRenderDashboard() {
   }
 
   // ── Parse pending leave requests ───────────────────────────────────────────
-  const allLeaves = (leavesRes?.status === 'ok' && Array.isArray(leavesRes.data))
-    ? leavesRes.data
+  const allLeaves = (leavesRes?.status === 'ok' && Array.isArray(leavesRes.data?.requests))
+    ? leavesRes.data.requests
     : [];
   const pendingCount = allLeaves.filter(
     l => (l.status || '').toLowerCase() === 'pending'

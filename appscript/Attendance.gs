@@ -154,11 +154,14 @@ function getMyAttendance(payload) {
   const records = sheetToObjects(getSheet('Attendance'))
     .filter(r =>
       String(r.employee_id) === String(auth.employee.id) &&
-      String(r.date) >= cutoffStr
+      formatDate(new Date(r.date)) >= cutoffStr
     )
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    .sort((a, b) => formatDate(new Date(b.date)).localeCompare(formatDate(new Date(a.date))));
 
-  records.forEach(r => delete r.__rowIndex);
+  records.forEach(r => {
+    if (r.date) r.date = formatDate(new Date(r.date));
+    delete r.__rowIndex;
+  });
   return ok({ records });
 }
 
@@ -308,18 +311,25 @@ function getAllAttendance(payload) {
 
   let records = sheetToObjects(getSheet('Attendance'));
 
+  // Normalise r.date to YYYY-MM-DD string regardless of whether the sheet column
+  // is formatted as Date (getValues returns a Date object) or plain text (string).
   if (filterEmpId) records = records.filter(function(r) { return String(r.employee_id) === filterEmpId; });
-  if (filterFrom)  records = records.filter(function(r) { return String(r.date) >= filterFrom; });
-  if (filterTo)    records = records.filter(function(r) { return String(r.date) <= filterTo; });
+  if (filterFrom)  records = records.filter(function(r) { return formatDate(new Date(r.date)) >= filterFrom; });
+  if (filterTo)    records = records.filter(function(r) { return formatDate(new Date(r.date)) <= filterTo; });
 
   records.sort(function(a, b) {
-    const d = String(b.date).localeCompare(String(a.date));
+    const aDate = formatDate(new Date(a.date));
+    const bDate = formatDate(new Date(b.date));
+    const d = bDate.localeCompare(aDate);
     return d !== 0 ? d : String(b.check_in || '').localeCompare(String(a.check_in || ''));
   });
 
   records = records.map(function(r) {
     const out = {};
     for (const k in r) { if (k !== '__rowIndex') out[k] = r[k]; }
+    // Always send date as YYYY-MM-DD string — avoids timezone shifts when the
+    // client calls new Date() on a value that was a Date object server-side.
+    if (r.date) out.date = formatDate(new Date(r.date));
     const emp          = empMap[String(r.employee_id)] || {};
     out.employee_name  = emp.name       || '';
     out.department     = emp.department || '';
