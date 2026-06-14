@@ -202,13 +202,14 @@ function _consumeCheckinToken(payload, employeeId) {
 
 // Run haversine against every active location.
 // Returns { inRange, locationId, locationName, distance }.
+// Checks ALL locations — approves if the employee is within ANY one of them.
 function _serverGeofenceCheck(lat, lng) {
   const defaultRadius = Number(getConfigValue('geofence_radius_m', 150));
 
-  let locations;
+  var locations;
   try {
     locations = sheetToObjects(getSheet('Locations'))
-      .filter(l => String(l.active).toUpperCase() === 'TRUE');
+      .filter(function(l) { return String(l.active).toUpperCase() === 'TRUE'; });
   } catch (e) {
     return { inRange: false, locationId: null, locationName: null, distance: null };
   }
@@ -217,19 +218,36 @@ function _serverGeofenceCheck(lat, lng) {
     return { inRange: false, locationId: null, locationName: null, distance: null };
   }
 
-  let nearest     = null;
-  let nearestDist = Infinity;
-  for (const loc of locations) {
-    const dist = haversine(lat, lng, Number(loc.lat), Number(loc.lng));
+  // Find the location the employee is actually inside (closest one within its radius).
+  // Do NOT just check the nearest location — the employee might be inside a farther one.
+  var matched      = null;
+  var matchedDist  = Infinity;
+  var nearest      = null;
+  var nearestDist  = Infinity;
+
+  for (var i = 0; i < locations.length; i++) {
+    var loc    = locations[i];
+    var dist   = haversine(lat, lng, Number(loc.lat), Number(loc.lng));
+    var radius = Number(loc.radius_m) || defaultRadius;
+
     if (dist < nearestDist) { nearestDist = dist; nearest = loc; }
+    if (dist <= radius && dist < matchedDist) { matchedDist = dist; matched = loc; }
   }
 
-  const radius = Number(nearest.radius_m) || defaultRadius;
+  if (matched) {
+    return {
+      inRange:      true,
+      locationId:   matched.id,
+      locationName: matched.name,
+      distance:     Math.round(matchedDist)
+    };
+  }
+
   return {
-    inRange:      nearestDist <= radius,
-    locationId:   nearest.id,
-    locationName: nearest.name,
-    distance:     Math.round(nearestDist)
+    inRange:      false,
+    locationId:   nearest ? nearest.id   : null,
+    locationName: nearest ? nearest.name : null,
+    distance:     nearest ? Math.round(nearestDist) : null
   };
 }
 
