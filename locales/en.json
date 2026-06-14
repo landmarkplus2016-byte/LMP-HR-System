@@ -141,7 +141,9 @@
     "no_requests": "No leave requests",
     "success_message": "Leave request submitted successfully",
     "new_request": "New request",
-    "taken_this_year": "Days taken this year"
+    "taken_this_year": "Days taken this year",
+    "filter_all": "All",
+    "days": "Days"
   },
 
   "team": {
@@ -308,7 +310,8 @@
     "confirm": "Confirm",
     "back": "Back",
     "loading": "Loading…",
-    "retry": "Retry"
+    "retry": "Retry",
+    "actions": "Actions"
   },
 
   "error": {

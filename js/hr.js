@@ -3022,3 +3022,205 @@ async function _deleteShift(shiftId) {
     if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
   }
 }
+
+// =============================================================================
+// LEAVE REQUESTS SCREEN — HR desktop
+// Shows all company leave requests (pending + approved + rejected) with
+// approve/reject actions for pending ones.
+// =============================================================================
+
+let _leavesAllRecords   = [];
+let _leavesStatusFilter = '';
+
+async function renderLeaveRequests(container) {
+  _cancelLiveTimer();
+  _leavesAllRecords   = [];
+  _leavesStatusFilter = '';
+
+  container.innerHTML = `
+    <div class="view-content">
+      <div class="view-header">
+        <div><h1 class="view-title">${t('nav.leave_requests')}</h1></div>
+      </div>
+
+      <div class="data-table-wrap">
+        <div class="table-toolbar" id="leave-toolbar">
+          <div class="filter-tabs" id="leave-filter-tabs" role="tablist">
+            <button class="filter-tab active" data-status=""         role="tab" aria-selected="true">${t('leave.filter_all')}</button>
+            <button class="filter-tab"         data-status="pending"  role="tab" aria-selected="false">${t('leave.pending')}</button>
+            <button class="filter-tab"         data-status="approved" role="tab" aria-selected="false">${t('status.approved')}</button>
+            <button class="filter-tab"         data-status="rejected" role="tab" aria-selected="false">${t('status.rejected')}</button>
+          </div>
+          <div class="table-toolbar-actions">
+            <input type="search" class="table-toolbar-search" id="leave-search"
+                   placeholder="${t('action.search')}" autocomplete="off">
+            <span class="count-badge" id="leave-count">—</span>
+          </div>
+        </div>
+
+        <table class="data-table" id="leave-table">
+          <thead>
+            <tr>
+              <th>${t('employees.name')}</th>
+              <th>${t('employees.department')}</th>
+              <th>${t('leave.type')}</th>
+              <th>${t('date.from')}</th>
+              <th>${t('date.to')}</th>
+              <th>${t('leave.days')}</th>
+              <th>${t('leave.reason')}</th>
+              <th>${t('attendance.status')}</th>
+              <th>${t('action.actions')}</th>
+            </tr>
+          </thead>
+          <tbody id="leave-tbody">${_skeletonTableRows(6, 9)}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  const res = await apiGetTeamLeaves();
+  if (!document.getElementById('leave-tbody')) return;
+
+  if (res.status !== 'ok') {
+    document.getElementById('leave-tbody').innerHTML =
+      `<tr><td colspan="9" class="table-empty">${_esc(res.message || t('error.server'))}</td></tr>`;
+    return;
+  }
+
+  _leavesAllRecords = Array.isArray(res.data?.requests) ? res.data.requests : [];
+  _renderLeaveTable('');
+
+  document.getElementById('leave-filter-tabs')?.addEventListener('click', function(e) {
+    const tab = e.target.closest('[data-status]');
+    if (!tab) return;
+    document.querySelectorAll('#leave-filter-tabs .filter-tab').forEach(function(b) {
+      b.classList.toggle('active', b === tab);
+      b.setAttribute('aria-selected', String(b === tab));
+    });
+    _leavesStatusFilter = tab.dataset.status;
+    _renderLeaveTable((document.getElementById('leave-search')?.value || '').trim().toLowerCase());
+  });
+
+  document.getElementById('leave-search')?.addEventListener('input', function() {
+    _renderLeaveTable(this.value.trim().toLowerCase());
+  });
+}
+
+window.renderLeaveRequests = renderLeaveRequests;
+
+function _renderLeaveTable(query) {
+  const tbody = document.getElementById('leave-tbody');
+  if (!tbody) return;
+
+  let rows = _leavesAllRecords;
+  if (_leavesStatusFilter) {
+    rows = rows.filter(function(l) {
+      return String(l.status || '').toLowerCase() === _leavesStatusFilter;
+    });
+  }
+  if (query) {
+    rows = rows.filter(function(l) {
+      return (l.employee_name || '').toLowerCase().includes(query) ||
+             (l.department    || '').toLowerCase().includes(query) ||
+             (l.leave_type    || '').toLowerCase().includes(query) ||
+             (l.reason        || '').toLowerCase().includes(query);
+    });
+  }
+
+  const countEl = document.getElementById('leave-count');
+  if (countEl) countEl.textContent = rows.length;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="table-empty">${t('leave.no_requests')}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(_hrLeaveRow).join('');
+
+  tbody.querySelectorAll('.leave-approve-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { _hrApproveLeave(btn.dataset.id); });
+  });
+  tbody.querySelectorAll('.leave-reject-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { _hrRejectLeave(btn.dataset.id); });
+  });
+}
+
+function _hrLeaveRow(l) {
+  const typeKeyMap = {
+    annual: 'type_annual', sick: 'type_sick',
+    emergency: 'type_emergency', unpaid: 'type_unpaid'
+  };
+  const typeKey   = typeKeyMap[String(l.leave_type || '').toLowerCase()] || 'type_annual';
+  const typeLabel = t('leave.' + typeKey) || l.leave_type || '';
+
+  const status      = String(l.status || '').toLowerCase();
+  const statusClass = { pending: 'badge-pending', approved: 'badge-present', rejected: 'badge-absent' }[status] || 'badge-pending';
+  const statusLabel = t('leave.' + status) || status;
+
+  const days      = _leaveDaysCount(l.start_date, l.end_date);
+  const isPending = status === 'pending';
+
+  return `
+    <tr>
+      <td style="font-weight:var(--fw-medium)">${_esc(l.employee_name || l.employee_id || '')}</td>
+      <td>${_esc(l.department || '')}</td>
+      <td>${_esc(typeLabel)}</td>
+      <td dir="ltr">${_esc(l.start_date || '')}</td>
+      <td dir="ltr">${_esc(l.end_date   || '')}</td>
+      <td style="text-align:center" dir="ltr">${days}</td>
+      <td class="leave-reason-cell">${_esc(l.reason || '—')}</td>
+      <td><span class="badge ${_esc(statusClass)}">${_esc(statusLabel)}</span></td>
+      <td>
+        ${isPending
+          ? `<div class="row-actions">
+               <button class="btn btn-sm btn-primary leave-approve-btn"
+                       data-id="${_esc(l.id)}" type="button">${t('action.approve')}</button>
+               <button class="btn btn-sm btn-danger leave-reject-btn"
+                       data-id="${_esc(l.id)}" type="button">${t('action.reject')}</button>
+             </div>`
+          : '—'}
+      </td>
+    </tr>`;
+}
+
+function _leaveDaysCount(startDate, endDate) {
+  try {
+    const s = new Date(String(startDate || '') + 'T00:00:00Z');
+    const e = new Date(String(endDate   || '') + 'T00:00:00Z');
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return '—';
+    return Math.max(0, Math.round((e - s) / 86400000) + 1);
+  } catch (_) { return '—'; }
+}
+
+async function _hrApproveLeave(leaveId) {
+  const btn = document.querySelector(`.leave-approve-btn[data-id="${CSS.escape(leaveId)}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = t('action.loading'); }
+
+  const res = await apiApproveLeave(leaveId);
+
+  if (res.status === 'ok') {
+    showToast(t('status.approved'), 'success');
+    const rec = _leavesAllRecords.find(function(l) { return l.id === leaveId; });
+    if (rec) rec.status = 'approved';
+    _renderLeaveTable((document.getElementById('leave-search')?.value || '').trim().toLowerCase());
+  } else {
+    showToast(res.message || t('error.server'), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = t('action.approve'); }
+  }
+}
+
+async function _hrRejectLeave(leaveId) {
+  const btn = document.querySelector(`.leave-reject-btn[data-id="${CSS.escape(leaveId)}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = t('action.loading'); }
+
+  const res = await apiRejectLeave(leaveId, '');
+
+  if (res.status === 'ok') {
+    showToast(t('status.rejected'), 'warning');
+    const rec = _leavesAllRecords.find(function(l) { return l.id === leaveId; });
+    if (rec) rec.status = 'rejected';
+    _renderLeaveTable((document.getElementById('leave-search')?.value || '').trim().toLowerCase());
+  } else {
+    showToast(res.message || t('error.server'), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = t('action.reject'); }
+  }
+}

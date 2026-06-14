@@ -156,21 +156,29 @@ function getTeamLeaves(payload) {
       .map(e => String(e.id));
   }
 
-  // id → name lookup so the frontend can display names without a second call
+  // id → { name, department } lookup so the frontend can display these without a second call
   const empMap = {};
-  employees.forEach(e => {
-    empMap[String(e.id)] = String(e.name || e.username || e.id);
+  employees.forEach(function(e) {
+    empMap[String(e.id)] = { name: String(e.name || e.username || e.id), department: String(e.department || '') };
   });
 
   const requests = sheetToObjects(getSheet('Leaves'))
-    .filter(l =>
-      teamIds.includes(String(l.employee_id)) &&
-      String(l.status) === 'pending'
-    )
-    .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+    .filter(function(l) {
+      if (!teamIds.includes(String(l.employee_id))) return false;
+      // Managers only see pending requests (their approval queue).
+      // HR sees all statuses so the Leave Requests screen shows the full picture.
+      if (role === 'manager') return String(l.status) === 'pending';
+      return true;
+    })
+    .sort(function(a, b) {
+      // Newest first — most relevant for HR; still useful for managers too.
+      return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+    });
 
-  requests.forEach(l => {
-    l.employee_name = empMap[String(l.employee_id)] || '';
+  requests.forEach(function(l) {
+    const emp = empMap[String(l.employee_id)] || {};
+    l.employee_name = emp.name       || '';
+    l.department    = emp.department || '';
     delete l.__rowIndex;
   });
 
