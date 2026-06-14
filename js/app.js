@@ -314,7 +314,7 @@ function _renderSidebar(nav, app, items, curHash) {
   const header = document.createElement('div');
   header.className = 'nav-sidebar-header';
   header.innerHTML = `
-    <img src="assets/logo.svg" alt="LMP" class="nav-logo" width="32" height="32"
+    <img src="LMP Big Logo-Photoroom.png" alt="Landmark Plus" class="nav-logo-big"
          onerror="this.style.display='none'">
     <span class="nav-app-name">${t('app.name') || 'LMP Attendance'}</span>`;
   nav.appendChild(header);
