@@ -265,7 +265,7 @@ function _renderCheckoutState(container, user) {
   if (msg)   msg.hidden = true;
 
   const cit = _todayRecord?.check_in || '';
-  if (cit) _setGpsState(container, 'success', `${t('attendance.check_in')}: ${cit}`);
+  if (cit) _setGpsState(container, 'success', `${t('attendance.check_in')}: ${_hhmm(cit)}`);
 
   btn.addEventListener('click', () => {
     if (!_isProcessing) _runCheckOut(container, user);
@@ -287,9 +287,9 @@ function _renderDoneState(container) {
   if (ring)  ring.classList.remove('checkin-ring-active');
 
   if (msg && _todayRecord) {
-    const h = _todayRecord.hours_worked
-      ? ` · ${_todayRecord.hours_worked} ${t('time.hours')}` : '';
-    msg.textContent = `${_todayRecord.check_in} → ${_todayRecord.check_out}${h}`;
+    const hw = parseFloat(_todayRecord.hours_worked);
+    const h  = (!isNaN(hw) && hw > 0) ? ` · ${hw} ${t('time.hours')}` : '';
+    msg.textContent = `${_hhmm(_todayRecord.check_in)} → ${_hhmm(_todayRecord.check_out)}${h}`;
     msg.className   = 'checkin-msg checkin-msg-success';
     msg.hidden      = false;
   }
@@ -420,6 +420,19 @@ function _rewireOnce(btn, fn) {
 function _isoToday() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// Extract HH:MM from whatever the server returns — plain "HH:MM", a 1899-12-30 ISO string,
+// or anything parseable by Date. Returns "–" for empty/invalid values.
+function _hhmm(val) {
+  if (!val) return '–';
+  const s = String(val).trim();
+  if (/^\d{1,2}:\d{2}$/.test(s)) return s;
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  return s;
 }
 
 // ---------------------------------------------------------------------------

@@ -116,13 +116,18 @@ function checkOut(payload) {
   const now          = new Date();
   const checkOutTime = formatTime(now);
 
-  // Reconstruct full check-in datetime from the stored date + HH:MM time
-  const checkInDate  = new Date(today + 'T' + String(record.check_in).padStart(5, '0') + ':00');
-  const hours        = _calcHoursWorked(checkInDate, now);
+  // Normalise check_in — Google Sheets returns time values as 1899-12-30 Date objects
+  const checkInStr  = _normaliseTime(record.check_in);
+  const recordDate  = record.date ? formatDate(new Date(record.date)) : today;
 
-  // Re-evaluate status at checkout (in case clock drifted at check-in)
+  // Reconstruct full check-in datetime from the stored date + HH:MM time
+  const checkInDate = new Date(recordDate + 'T' + checkInStr.padStart(5, '0') + ':00');
+  const rawHours    = _calcHoursWorked(checkInDate, now);
+  const hours       = (typeof rawHours === 'number' && !isNaN(rawHours)) ? rawHours : 0;
+
+  // Re-evaluate status at checkout
   const shift  = employee.shift_id ? _getShift(String(employee.shift_id)) : null;
-  const status = _determineStatus(String(record.check_in), shift);
+  const status = _determineStatus(checkInStr, shift);
 
   updateRow(attSheet, record.__rowIndex, {
     check_out:    checkOutTime,
@@ -159,7 +164,9 @@ function getMyAttendance(payload) {
     .sort((a, b) => formatDate(new Date(b.date)).localeCompare(formatDate(new Date(a.date))));
 
   records.forEach(r => {
-    if (r.date) r.date = formatDate(new Date(r.date));
+    if (r.date)      r.date      = formatDate(new Date(r.date));
+    if (r.check_in)  r.check_in  = _normaliseTime(r.check_in);
+    if (r.check_out) r.check_out = _normaliseTime(r.check_out);
     delete r.__rowIndex;
   });
   return ok({ records });
@@ -303,6 +310,20 @@ function _calcHoursWorked(checkIn, checkOut) {
   return Math.round(ms / 36000) / 100;
 }
 
+// Normalise a sheet time value to "HH:MM" string.
+// Google Sheets stores "HH:MM" entries as time serial numbers and getValues()
+// returns them as Date objects anchored to 1899-12-30. This converts them back.
+function _normaliseTime(val) {
+  if (!val) return '';
+  if (val instanceof Date) return formatTime(val);
+  var s = String(val).trim();
+  if (s.indexOf('T') !== -1) {
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) return formatTime(d);
+  }
+  return s;
+}
+
 // ---------------------------------------------------------------------------
 // getAllAttendance — HR only
 // ---------------------------------------------------------------------------
@@ -351,9 +372,10 @@ function getAllAttendance(payload) {
   records = records.map(function(r) {
     const out = {};
     for (const k in r) { if (k !== '__rowIndex') out[k] = r[k]; }
-    // Always send date as YYYY-MM-DD string — avoids timezone shifts when the
-    // client calls new Date() on a value that was a Date object server-side.
-    if (r.date) out.date = formatDate(new Date(r.date));
+    // Always send date/time as plain strings — avoids timezone shifts from sheet Date objects.
+    if (r.date)      out.date      = formatDate(new Date(r.date));
+    out.check_in  = _normaliseTime(r.check_in);
+    out.check_out = _normaliseTime(r.check_out);
     const emp          = empMap[String(r.employee_id)] || {};
     out.employee_name  = emp.name       || '';
     out.department     = emp.department || '';
@@ -412,7 +434,7 @@ function correctAttendance(payload) {
   // 3 — Recalculate hours_worked if both times are now available
   const ciStr  = (updates.check_in  !== undefined ? updates.check_in  : String(original.check_in  || '')).trim();
   const coStr  = (updates.check_out !== undefined ? updates.check_out : String(original.check_out || '')).trim();
-  const dateStr = String(original.date || '');
+  const dateStr = original.date ? formatDate(new Date(original.date)) : '';
   if (ciStr && coStr && dateStr) {
     try {
       const inDt  = new Date(dateStr + 'T' + ciStr.padStart(5, '0')  + ':00');
@@ -561,6 +583,9 @@ function getFlaggedRecords(payload) {
   records = records.map(function(r) {
     const out = {};
     for (const k in r) { if (k !== '__rowIndex') out[k] = r[k]; }
+    if (r.date)      out.date      = formatDate(new Date(r.date));
+    out.check_in  = _normaliseTime(r.check_in);
+    out.check_out = _normaliseTime(r.check_out);
     const emp          = empMap[String(r.employee_id)] || {};
     out.employee_name  = emp.name       || '';
     out.department     = emp.department || '';
