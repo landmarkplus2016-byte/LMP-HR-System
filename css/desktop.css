@@ -282,7 +282,7 @@
     align-items: center;
     justify-content: space-between;
     margin-block-end: var(--sp-6);
-    background: var(--c-bg);
+    background: transparent;
     padding-block-end: var(--sp-4);
   }
 
