@@ -235,13 +235,19 @@ function _serverGeofenceCheck(lat, lng) {
 
 // Find the first open check-in row for this employee on the given date.
 // Open = check_in present AND check_out absent.
+// Uses formatDate() to normalise r.date because Google Sheets returns date
+// cells as Date objects, not strings — String(dateObj) never matches "YYYY-MM-DD".
 function _findOpenCheckin(attSheet, employeeId, today) {
-  return sheetToObjects(attSheet).find(r =>
-    String(r.employee_id) === String(employeeId) &&
-    String(r.date)        === String(today)      &&
-    r.check_in            &&
-    !r.check_out
-  ) || null;
+  return sheetToObjects(attSheet).find(function(r) {
+    var rowDate = '';
+    try { rowDate = r.date ? formatDate(new Date(r.date)) : ''; } catch (_) {}
+    return (
+      String(r.employee_id) === String(employeeId) &&
+      rowDate               === String(today)       &&
+      r.check_in            &&
+      !r.check_out
+    );
+  }) || null;
 }
 
 // Look up a shift by ID. Returns null on any failure.

@@ -1401,7 +1401,8 @@
   border-radius: var(--r-lg);
   border: 1px solid var(--c-border);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Data table ─────────────────────────────────────────────────────────────── */
