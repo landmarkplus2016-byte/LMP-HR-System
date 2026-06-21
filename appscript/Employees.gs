@@ -57,7 +57,7 @@ function getTeamStatus(payload) {
 
   // Build attendance lookup: employee_id → today's record
   const attToday = sheetToObjects(getSheet('Attendance'))
-    .filter(r => String(r.date) === today);
+    .filter(r => formatDate(new Date(r.date)) === today);
   const attMap = {};
   attToday.forEach(r => { attMap[String(r.employee_id)] = r; });
 
@@ -149,7 +149,7 @@ function getTeamAttendance(payload) {
 
   // Attendance records for this team on this date
   const records = sheetToObjects(getSheet('Attendance'))
-    .filter(r => String(r.date) === date && teamIdSet.has(String(r.employee_id)))
+    .filter(r => formatDate(new Date(r.date)) === date && teamIdSet.has(String(r.employee_id)))
     .map(r => {
       const out = {};
       for (const k in r) {
