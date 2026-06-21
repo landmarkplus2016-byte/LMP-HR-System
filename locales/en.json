@@ -21,7 +21,7 @@
     "new": "New password",
     "confirm": "Confirm password",
     "requirements_label": "Password requirements",
-    "req_length": "8 characters minimum",
+    "req_length": "4 characters minimum",
     "req_match": "Passwords match",
     "submit": "Change Password"
   },
@@ -322,7 +322,7 @@
     "session_expired": "Session expired. Please sign in again.",
     "network": "Connection error. Please try again.",
     "server": "Server error. Please try again.",
-    "pw_too_short": "Password must be at least 8 characters",
+    "pw_too_short": "Password must be at least 4 characters",
     "pw_mismatch": "Passwords do not match",
     "change_pw_failed": "Password change failed",
     "unauthorized": "Access denied",

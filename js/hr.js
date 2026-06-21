@@ -1734,7 +1734,7 @@ function _renderEmpResetPwForm(emp) {
 
     errEl.hidden = true;
 
-    if (newPw.length < 8) {
+    if (newPw.length < 4) {
       errEl.textContent = t('error.pw_too_short');
       errEl.hidden = false;
       return;
@@ -1851,7 +1851,7 @@ async function _saveEmpAdd() {
     if (errEl) { errEl.hidden = false; errEl.textContent = t('error.required_field'); }
     return;
   }
-  if (tempPw.length < 8) {
+  if (tempPw.length < 4) {
     if (errEl) { errEl.hidden = false; errEl.textContent = t('error.pw_too_short'); }
     return;
   }

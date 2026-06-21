@@ -201,7 +201,7 @@ function _renderPasswordChange(container) {
             <ul class="auth-requirements" aria-label="${_t('change_pw.requirements_label', 'متطلبات كلمة المرور', 'Password requirements')}">
               <li class="auth-requirement" id="req-length">
                 <span class="auth-req-dot" aria-hidden="true"></span>
-                ${_t('change_pw.req_length', '٨ أحرف على الأقل', '8 characters minimum')}
+                ${_t('change_pw.req_length', '٤ أحرف على الأقل', '4 characters minimum')}
               </li>
               <li class="auth-requirement" id="req-match">
                 <span class="auth-req-dot" aria-hidden="true"></span>
@@ -353,7 +353,7 @@ function _bindPasswordChangeForm(container) {
   function checkReqs() {
     const newPw = newPwInput?.value || '';
     const conPw = conPwInput?.value || '';
-    _setReq('req-length', newPw.length >= 8);
+    _setReq('req-length', newPw.length >= 4);
     _setReq('req-match',  newPw.length > 0 && newPw === conPw);
   }
   newPwInput?.addEventListener('input', checkReqs);
@@ -368,8 +368,8 @@ function _bindPasswordChangeForm(container) {
     const newPw = newPwInput?.value || '';
     const conPw = conPwInput?.value || '';
 
-    if (newPw.length < 8) {
-      _showError('change-error', _t('error.pw_too_short', 'كلمة المرور يجب أن تكون ٨ أحرف على الأقل', 'Password must be at least 8 characters'));
+    if (newPw.length < 4) {
+      _showError('change-error', _t('error.pw_too_short', 'كلمة المرور يجب أن تكون ٤ أحرف على الأقل', 'Password must be at least 4 characters'));
       newPwInput?.focus();
       return;
     }

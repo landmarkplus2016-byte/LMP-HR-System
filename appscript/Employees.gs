@@ -248,8 +248,8 @@ function addEmployee(payload) {
   if (!name)     return error('Name is required', 'الاسم مطلوب');
   if (!username) return error('Username is required', 'اسم المستخدم مطلوب');
   if (!tempPw)   return error('Temporary password is required', 'كلمة المرور المؤقتة مطلوبة');
-  if (tempPw.length < 8) {
-    return error('Temporary password must be at least 8 characters', 'كلمة المرور المؤقتة يجب أن تكون ٨ أحرف على الأقل');
+  if (tempPw.length < 4) {
+    return error('Temporary password must be at least 4 characters', 'كلمة المرور المؤقتة يجب أن تكون ٤ أحرف على الأقل');
   }
 
   const validRoles = ['employee', 'manager', 'hr'];
