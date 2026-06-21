@@ -987,7 +987,7 @@ async function _saveCorrectionForm(rec) {
   if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = t('action.save'); }
 
   if (res?.status !== 'ok') {
-    if (noteErr) { noteErr.textContent = res?.error || t('error.server'); noteErr.hidden = false; }
+    if (noteErr) { noteErr.textContent = res?.message || t('error.server'); noteErr.hidden = false; }
     return;
   }
 
@@ -1286,7 +1286,7 @@ async function _handleGenerateReport() {
   if (res?.status !== 'ok') {
     if (resultEl) {
       resultEl.hidden  = false;
-      resultEl.innerHTML = `<p class="form-field-error">${_esc(res?.error || t('error.server'))}</p>`;
+      resultEl.innerHTML = `<p class="form-field-error">${_esc(res?.message || t('error.server'))}</p>`;
     }
     return;
   }
@@ -1871,7 +1871,7 @@ async function _saveEmpAdd() {
     _closeEmpPanel();
     await _fetchEmployees();
   } else {
-    if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
+    if (errEl) { errEl.hidden = false; errEl.textContent = res?.message || t('error.server'); }
   }
 }
 
@@ -1900,7 +1900,7 @@ async function _saveEmpEdit(emp) {
     _closeEmpPanel();
     await _fetchEmployees();
   } else {
-    if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
+    if (errEl) { errEl.hidden = false; errEl.textContent = res?.message || t('error.server'); }
   }
 }
 
@@ -2224,7 +2224,7 @@ async function _saveLocAdd() {
     _closeLocPanel();
     await _refreshLocations();
   } else {
-    if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
+    if (errEl) { errEl.hidden = false; errEl.textContent = res?.message || t('error.server'); }
   }
 }
 
@@ -2252,7 +2252,7 @@ async function _saveLocEdit(loc) {
     _closeLocPanel();
     await _refreshLocations();
   } else {
-    if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
+    if (errEl) { errEl.hidden = false; errEl.textContent = res?.message || t('error.server'); }
   }
 }
 
@@ -2454,7 +2454,7 @@ async function _saveHolAndRefresh(dateStr) {
     document.getElementById('hol-modal').hidden = true;
     await _loadHolidays();
   } else {
-    if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
+    if (errEl) { errEl.hidden = false; errEl.textContent = res?.message || t('error.server'); }
     if (btn) { btn.disabled = false; btn.textContent = t('action.save'); }
   }
 }
@@ -2644,7 +2644,7 @@ async function _saveConfig() {
   } else {
     if (msgEl) {
       msgEl.style.cssText = 'display:block;color:var(--c-absent)';
-      msgEl.textContent = res?.error || t('error.server');
+      msgEl.textContent = res?.message || t('error.server');
     }
   }
 }
@@ -2807,7 +2807,7 @@ async function _saveDept(existingDept) {
     });
     _renderDeptTable(empCounts);
   } else {
-    if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
+    if (errEl) { errEl.hidden = false; errEl.textContent = res?.message || t('error.server'); }
   }
 }
 
@@ -3001,7 +3001,7 @@ async function _saveShift(existingShift) {
     _shiftAllRecords = res2?.data?.shifts || [];
     _renderShiftTable();
   } else {
-    if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
+    if (errEl) { errEl.hidden = false; errEl.textContent = res?.message || t('error.server'); }
   }
 }
 
@@ -3019,7 +3019,7 @@ async function _deleteShift(shiftId) {
     _renderShiftTable();
   } else {
     if (btn)   { btn.disabled = false; btn.textContent = t('action.delete'); }
-    if (errEl) { errEl.hidden = false; errEl.textContent = res?.error || t('error.server'); }
+    if (errEl) { errEl.hidden = false; errEl.textContent = res?.message || t('error.server'); }
   }
 }
 
