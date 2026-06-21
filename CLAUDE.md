@@ -190,7 +190,8 @@ function haversine(lat1, lng1, lat2, lng2) {
 **New phone detection:**
 - `biometric.js` checks `localStorage` for stored `credential_id`
 - If missing (new phone) → show re-registration prompt after login
-- Old credential replaced in Employees tab after successful re-registration
+- **Registration is one-time per employee, not self-service replacement.** `webauthnRegisterComplete` (`Auth.gs`) rejects the attempt if `webauthn_credential_id` is already set on the employee record — this is what stops a coworker who knows someone's password from "registering" their own fingerprint on their own phone and checking in on that person's behalf
+- A genuine phone change requires HR to clear the old credential first via `hr_reset_biometric` (Employees screen → employee detail → "Reset Biometric") — only then does the next login's registration prompt succeed
 
 ### Check-in Full Flow (`js/attendance.js`)
 ```

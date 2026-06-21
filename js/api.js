@@ -413,6 +413,10 @@ async function apiHrResetPassword(employeeId, newPasswordHash, forceChange) {
   });
 }
 
+async function apiHrResetBiometric(employeeId) {
+  return post('hr_reset_biometric', { employee_id: employeeId });
+}
+
 async function apiDeactivateEmployee(employeeId) {
   return post('deactivate_employee', { employee_id: employeeId });
 }

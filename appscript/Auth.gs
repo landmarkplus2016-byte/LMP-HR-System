@@ -246,6 +246,39 @@ function hrResetPassword(payload) {
 }
 
 // ---------------------------------------------------------------------------
+// hrResetBiometric  (HR-only — clears a registered fingerprint credential)
+// ---------------------------------------------------------------------------
+// Payload: { session_token, device_id, employee_id }
+// Required before an employee can register biometrics on a new phone — see
+// the registration guard in webauthnRegisterComplete below. Also clears any
+// active biometric lockout so the employee isn't stuck after re-registering.
+function hrResetBiometric(payload) {
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+
+  if (String(auth.employee.role).toLowerCase() !== 'hr') {
+    return error('Access denied — HR role required', 'رفض الوصول — يلزم دور مدير الموارد البشرية');
+  }
+
+  const employeeId = String(payload.employee_id || '').trim();
+  if (!employeeId) return error('employee_id is required', 'معرّف الموظف مطلوب');
+
+  const empSheet = getSheet('Employees');
+  const employee  = findRow(empSheet, 'id', employeeId);
+  if (!employee) return error('Employee not found', 'الموظف غير موجود');
+
+  updateRow(empSheet, employee.__rowIndex, {
+    webauthn_credential_id:  '',
+    webauthn_public_key:     '',
+    webauthn_registered_at:  '',
+    biometric_locked:        'FALSE',
+    biometric_locked_at:     ''
+  });
+
+  return ok({ reset: true, employee_id: employeeId });
+}
+
+// ---------------------------------------------------------------------------
 // getConfig  (public — no session required)
 // ---------------------------------------------------------------------------
 function getConfig(payload) {
@@ -304,6 +337,17 @@ function webauthnRegisterChallenge(payload) {
 function webauthnRegisterComplete(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
+
+  // Registration is one-time per employee. A credential already on file means
+  // someone else's device tripped the "new phone" prompt with this account's
+  // password — block it here instead of silently handing them check-in access.
+  // HR must clear it first (hrResetBiometric) after confirming with the real employee.
+  if (String(auth.employee.webauthn_credential_id || '').trim()) {
+    return error(
+      'Biometric already registered for this account. Ask HR to reset it before registering on a new device.',
+      'البصمة مسجّلة بالفعل لهذا الحساب. اطلب من إدارة الموارد البشرية إعادة تعيينها قبل التسجيل على جهاز جديد.'
+    );
+  }
 
   const credentialId  = String(payload.credentialId   || '').trim();
   const attestObj     = String(payload.publicKey       || '').trim();

@@ -1342,6 +1342,7 @@ let _empAllRecords = [], _empFiltered = [], _empPage = 1;
 const _EMP_PGS = 25;
 let _empShifts = [], _empDepts = [], _empManagers = [];
 let _empDeactTarget = null;
+let _empBiometricTarget = null;
 
 async function renderEmployees(container) {
   container.innerHTML = `
@@ -1397,6 +1398,22 @@ async function renderEmployees(container) {
         </div>
       </div>
     </div>
+
+    <div class="modal-overlay" id="emp-biometric-modal" hidden>
+      <div class="modal" role="alertdialog" aria-modal="true">
+        <div class="modal-hd">
+          <span class="modal-title">${t('employees.reset_biometric')}</span>
+          <button class="btn-icon" id="emp-biometric-x" aria-label="${t('action.close')}">✕</button>
+        </div>
+        <div class="modal-bd">
+          <p style="font-size:var(--text-sm);color:var(--c-text)">${t('employees.reset_biometric_confirm')}</p>
+        </div>
+        <div class="modal-ft">
+          <button class="btn btn-danger btn-sm" id="emp-biometric-confirm">${t('action.confirm')}</button>
+          <button class="btn btn-ghost btn-sm" id="emp-biometric-cancel">${t('action.cancel')}</button>
+        </div>
+      </div>
+    </div>
     </div>
   `;
 
@@ -1414,6 +1431,15 @@ async function renderEmployees(container) {
   });
   document.getElementById('emp-deact-confirm').addEventListener('click', function() {
     _executeDeactivate(_empDeactTarget);
+  });
+  document.getElementById('emp-biometric-x').addEventListener('click', function() {
+    document.getElementById('emp-biometric-modal').hidden = true;
+  });
+  document.getElementById('emp-biometric-cancel').addEventListener('click', function() {
+    document.getElementById('emp-biometric-modal').hidden = true;
+  });
+  document.getElementById('emp-biometric-confirm').addEventListener('click', function() {
+    _executeResetBiometric(_empBiometricTarget);
   });
 
   const [empRes, shiftRes, deptRes] = await Promise.all([
@@ -1559,6 +1585,8 @@ function _closeEmpPanel() {
   document.getElementById('emp-overlay')?.classList.remove('overlay-visible');
   const modal = document.getElementById('emp-deact-modal');
   if (modal) modal.hidden = true;
+  const bioModal = document.getElementById('emp-biometric-modal');
+  if (bioModal) bioModal.hidden = true;
 }
 
 function _renderEmpDetail(emp) {
@@ -1569,8 +1597,9 @@ function _renderEmpDetail(emp) {
 
   const shiftMap = {};
   _empShifts.forEach(function(s) { shiftMap[s.id] = s.name; });
-  const isActive = String(emp.active || '').toUpperCase() !== 'FALSE';
-  const bioEx    = String(emp.biometric_exempt || '').toUpperCase() === 'TRUE';
+  const isActive    = String(emp.active || '').toUpperCase() !== 'FALSE';
+  const bioEx       = String(emp.biometric_exempt || '').toUpperCase() === 'TRUE';
+  const bioRegistered = !!String(emp.webauthn_credential_id || '').trim();
 
   bd.innerHTML = `
     <div class="detail-emp-hd">
@@ -1601,10 +1630,18 @@ function _renderEmpDetail(emp) {
         <span class="detail-field-label">${t('employees.biometric_exempt')}</span>
         <span class="detail-field-value">${bioEx ? t('status.active') : '—'}</span>
       </div>
+      <div class="detail-field">
+        <span class="detail-field-label">${t('employees.biometric_registered')}</span>
+        <span class="detail-field-value">${bioRegistered ? t('status.active') : '—'}</span>
+      </div>
     </div>
     <div class="detail-actions">
       <button class="btn btn-secondary btn-sm" id="emp-edit-btn">${t('action.edit')}</button>
       <button class="btn btn-secondary btn-sm" id="emp-resetpw-btn">${t('employees.reset_password')}</button>
+      ${bioRegistered
+        ? `<button class="btn btn-secondary btn-sm" id="emp-biometric-btn">${t('employees.reset_biometric')}</button>`
+        : ''
+      }
       ${isActive
         ? `<button class="btn btn-danger btn-sm" id="emp-deact-btn">${t('employees.deactivate')}</button>`
         : `<button class="btn btn-primary btn-sm" id="emp-react-btn">${t('employees.reactivate')}</button>`
@@ -1616,6 +1653,10 @@ function _renderEmpDetail(emp) {
   });
   document.getElementById('emp-resetpw-btn')?.addEventListener('click', function() {
     _renderEmpResetPwForm(emp);
+  });
+  document.getElementById('emp-biometric-btn')?.addEventListener('click', function() {
+    _empBiometricTarget = emp.id;
+    document.getElementById('emp-biometric-modal').hidden = false;
   });
   document.getElementById('emp-deact-btn')?.addEventListener('click', function() {
     _empDeactTarget = emp.id;
@@ -1951,6 +1992,19 @@ async function _executeReactivate(empId) {
   if (res?.status === 'ok') {
     _closeEmpPanel();
     await _fetchEmployees();
+  }
+}
+
+async function _executeResetBiometric(empId) {
+  if (!empId) return;
+  document.getElementById('emp-biometric-modal').hidden = true;
+  const res = await apiHrResetBiometric(empId);
+  if (res?.status === 'ok') {
+    showToast(t('employees.reset_biometric_success'), 'success');
+    _closeEmpPanel();
+    await _fetchEmployees();
+  } else {
+    showToast(res?.message || t('error.server'), 'error');
   }
 }
 
