@@ -1653,6 +1653,11 @@ function _renderEmpEditForm(emp) {
         <input id="emp-f-name" type="text" class="input" value="${_esc(emp.name || '')}">
       </div>
       <div class="form-group">
+        <label>${t('employees.username')} <span class="form-required">*</span></label>
+        <input id="emp-f-username" type="text" class="input" dir="ltr" autocomplete="off"
+          value="${_esc(emp.username || '')}">
+      </div>
+      <div class="form-group">
         <label>${t('employees.role')}</label>
         <select id="emp-f-role" class="table-toolbar-select" style="max-width:unset">
           <option value="employee" ${emp.role === 'employee' ? 'selected' : ''}>${t('employees.role_employee')}</option>
@@ -1677,6 +1682,17 @@ function _renderEmpEditForm(emp) {
           <input type="checkbox" id="emp-f-bioexempt"
             ${String(emp.biometric_exempt || '').toUpperCase() === 'TRUE' ? 'checked' : ''}>
           ${t('employees.biometric_exempt')}
+        </label>
+      </div>
+      <div class="form-group">
+        <label>${t('employees.new_password_label')}</label>
+        <input id="emp-f-newpw" type="text" class="input" dir="ltr" autocomplete="off"
+          placeholder="${t('change_pw.req_length')}">
+      </div>
+      <div class="form-group">
+        <label class="wd-check-label" style="border:none;padding:0;gap:var(--sp-2)">
+          <input type="checkbox" id="emp-f-force-change" checked>
+          ${t('employees.reset_pw_force')}
         </label>
       </div>
       <p id="emp-edit-err" class="form-field-error" hidden></p>
@@ -1876,23 +1892,39 @@ async function _saveEmpAdd() {
 }
 
 async function _saveEmpEdit(emp) {
-  const name    = (document.getElementById('emp-f-name')?.value  || '').trim();
-  const role    = document.getElementById('emp-f-role')?.value   || 'employee';
-  const dept    = document.getElementById('emp-f-dept')?.value   || '';
-  const shiftId = document.getElementById('emp-f-shift')?.value  || '';
-  const mgrId   = document.getElementById('emp-f-mgr')?.value    || '';
-  const bioEx   = document.getElementById('emp-f-bioexempt')?.checked ? 'TRUE' : 'FALSE';
-  const errEl   = document.getElementById('emp-edit-err');
+  const name     = (document.getElementById('emp-f-name')?.value     || '').trim();
+  const username = (document.getElementById('emp-f-username')?.value || '').trim().toLowerCase();
+  const role     = document.getElementById('emp-f-role')?.value      || 'employee';
+  const dept     = document.getElementById('emp-f-dept')?.value      || '';
+  const shiftId  = document.getElementById('emp-f-shift')?.value     || '';
+  const mgrId    = document.getElementById('emp-f-mgr')?.value       || '';
+  const bioEx    = document.getElementById('emp-f-bioexempt')?.checked ? 'TRUE' : 'FALSE';
+  const newPw    = (document.getElementById('emp-f-newpw')?.value    || '').trim();
+  const force    = document.getElementById('emp-f-force-change')?.checked !== false;
+  const errEl    = document.getElementById('emp-edit-err');
 
-  if (!name) { if (errEl) { errEl.hidden = false; errEl.textContent = t('error.required_field'); } return; }
+  if (!name || !username) {
+    if (errEl) { errEl.hidden = false; errEl.textContent = t('error.required_field'); }
+    return;
+  }
+  if (newPw && newPw.length < 4) {
+    if (errEl) { errEl.hidden = false; errEl.textContent = t('error.pw_too_short'); }
+    return;
+  }
   if (errEl) errEl.hidden = true;
 
   const btn = document.getElementById('emp-save-edit');
   if (btn) { btn.disabled = true; btn.textContent = t('action.loading'); }
 
-  const res = await apiUpdateEmployee(emp.id, {
-    name, role, department: dept, shift_id: shiftId, manager_id: mgrId, biometric_exempt: bioEx
-  });
+  const updates = {
+    name, username, role, department: dept, shift_id: shiftId, manager_id: mgrId, biometric_exempt: bioEx
+  };
+  if (newPw) {
+    updates.new_password_hash = await hashPassword(newPw);
+    updates.force_password_change = force ? 'TRUE' : 'FALSE';
+  }
+
+  const res = await apiUpdateEmployee(emp.id, updates);
 
   if (btn) { btn.disabled = false; btn.textContent = t('action.save'); }
 

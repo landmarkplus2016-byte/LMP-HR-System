@@ -195,7 +195,8 @@
     "reset_pw_label": "New temporary password",
     "reset_pw_force": "Require password change on next login",
     "reset_pw_confirm": "Reset Password",
-    "reset_pw_success": "Password reset successfully"
+    "reset_pw_success": "Password reset successfully",
+    "new_password_label": "New password (leave blank to keep current)"
   },
 
   "locations": {

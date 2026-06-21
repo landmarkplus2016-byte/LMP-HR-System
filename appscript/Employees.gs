@@ -289,8 +289,9 @@ function addEmployee(payload) {
 
 // =============================================================================
 // updateEmployee — HR only
-// Only fields in _UPDATABLE_EMPLOYEE_FIELDS may be changed.
-// Password, WebAuthn keys, and session data are never touched here.
+// Only fields in _UPDATABLE_EMPLOYEE_FIELDS may be changed, plus optional
+// username (unique check) and new_password_hash (pre-hashed by the client).
+// WebAuthn keys and session data are never touched here.
 // =============================================================================
 function updateEmployee(payload) {
   const auth = validateSession(payload);
@@ -315,16 +316,36 @@ function updateEmployee(payload) {
     }
   }
 
-  if (Object.keys(updates).length === 0) {
-    return error('No valid fields to update', 'لا توجد حقول صالحة للتحديث');
-  }
-
   // Validate role if being changed
   if (updates.role !== undefined) {
     const validRoles = ['employee', 'manager', 'hr'];
     if (!validRoles.includes(updates.role)) {
       return error('Invalid role', 'الدور الوظيفي غير صالح');
     }
+  }
+
+  // Username change — unique (case-insensitive), excluding this employee's own row
+  if (payload.username !== undefined) {
+    const newUsername = String(payload.username).trim().toLowerCase();
+    if (!newUsername) return error('Username is required', 'اسم المستخدم مطلوب');
+    const existing = findRow(empSheet, 'username', newUsername);
+    if (existing && String(existing.id) !== employeeId) {
+      return error('Username already exists', 'اسم المستخدم مستخدم بالفعل');
+    }
+    updates.username = newUsername;
+  }
+
+  // Password change — caller sends an already-hashed value (never plain text)
+  if (payload.new_password_hash !== undefined) {
+    const newHash = String(payload.new_password_hash).trim();
+    if (!newHash) return error('New password is required', 'كلمة المرور الجديدة مطلوبة');
+    updates.password_hash = newHash;
+    updates.force_password_change =
+      String(payload.force_password_change || 'TRUE').toUpperCase() !== 'FALSE' ? 'TRUE' : 'FALSE';
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return error('No valid fields to update', 'لا توجد حقول صالحة للتحديث');
   }
 
   updateRow(empSheet, emp.__rowIndex, updates);
