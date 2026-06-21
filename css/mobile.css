@@ -518,6 +518,14 @@
   flex-direction: column;
   align-items: center;
   gap: var(--sp-2);
+  transition: box-shadow var(--dur-base) var(--ease-io);
+}
+
+.balance-card:hover,
+.balance-card:focus-within {
+  box-shadow: 0 0 0 1px var(--c-primary-mid),
+              0 0 24px 4px var(--c-primary-dim),
+              var(--shadow-md);
 }
 
 .balance-card-primary {
@@ -603,6 +611,14 @@
   gap: var(--sp-2);
   text-align: center;
   box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--dur-base) var(--ease-io);
+}
+
+.mgr-stat-card:hover,
+.mgr-stat-card:focus-within {
+  box-shadow: 0 0 0 1px var(--c-primary-mid),
+              0 0 24px 4px var(--c-primary-dim),
+              var(--shadow-md);
 }
 
 .mgr-stat-num {
@@ -820,6 +836,14 @@
   flex-direction: column;
   gap: var(--sp-3);
   list-style: none;
+  transition: box-shadow var(--dur-base) var(--ease-io);
+}
+
+.mgr-leave-card:hover,
+.mgr-leave-card:focus-within {
+  box-shadow: 0 0 0 1px var(--c-primary-mid),
+              0 0 24px 4px var(--c-primary-dim),
+              var(--shadow-md);
 }
 
 .mgr-leave-header {
@@ -1170,6 +1194,14 @@
   flex-direction: column;
   gap: var(--sp-2);
   box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--dur-base) var(--ease-io);
+}
+
+.stat-card:hover,
+.stat-card:focus-within {
+  box-shadow: 0 0 0 1px var(--c-primary-mid),
+              0 0 24px 4px var(--c-primary-dim),
+              var(--shadow-md);
 }
 
 .stat-card-present { border-inline-start-color: var(--c-present); }
@@ -1259,6 +1291,14 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   margin-block-end: var(--sp-5);
+  transition: box-shadow var(--dur-base) var(--ease-io);
+}
+
+.activity-card:hover,
+.activity-card:focus-within {
+  box-shadow: 0 0 0 1px var(--c-primary-mid),
+              0 0 24px 4px var(--c-primary-dim),
+              var(--shadow-md);
 }
 
 .activity-header {

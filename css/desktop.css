@@ -349,7 +349,12 @@
     transition: box-shadow var(--dur-fast);
   }
 
-  .stat-card:hover { box-shadow: var(--shadow-md); }
+  .stat-card:hover,
+  .stat-card:focus-within {
+    box-shadow: 0 0 0 1px var(--c-primary-mid),
+                0 0 24px 4px var(--c-primary-dim),
+                var(--shadow-md);
+  }
 
   /* Left-border color accent per status */
   .stat-card-present { border-inline-start-color: var(--c-present); }

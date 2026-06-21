@@ -510,6 +510,16 @@ input:focus, textarea:focus, select:focus {
   border: 1px solid var(--c-border);
   box-shadow: var(--shadow-sm);
   padding: var(--sp-5);
+  transition: border-color var(--dur-base) var(--ease-io),
+              box-shadow var(--dur-base) var(--ease-io);
+}
+
+.card:hover,
+.card:focus-within {
+  border-color: var(--c-primary-mid);
+  box-shadow: 0 0 0 1px var(--c-primary-mid),
+              0 0 24px 4px var(--c-primary-dim),
+              var(--shadow-md);
 }
 
 /* ── View placeholder ───────────────────────────────────────────────────────── */
