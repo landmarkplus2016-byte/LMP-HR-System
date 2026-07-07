@@ -53,7 +53,7 @@ function submitLeave(payload) {
   const overlap  = existing.find(l =>
     String(l.employee_id) === String(auth.employee.id) &&
     ['pending', 'approved'].includes(String(l.status)) &&
-    !(String(l.end_date) < startDate || String(l.start_date) > endDate)
+    !(_normaliseLeaveDate(l.end_date) < startDate || _normaliseLeaveDate(l.start_date) > endDate)
   );
   if (overlap) {
     return error(
@@ -103,7 +103,14 @@ function getMyLeaves(payload) {
     .filter(l => String(l.employee_id) === String(auth.employee.id))
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 
-  requests.forEach(r => delete r.__rowIndex);
+  // Google Sheets returns date-formatted cells as Date objects, not strings.
+  // Normalise start/end to YYYY-MM-DD so both the balance math below and the
+  // frontend receive clean strings.
+  requests.forEach(r => {
+    r.start_date = _normaliseLeaveDate(r.start_date);
+    r.end_date   = _normaliseLeaveDate(r.end_date);
+    delete r.__rowIndex;
+  });
 
   // Annual balance — sum approved annual-type days that started this calendar year
   const annualTotal = Number(getConfigValue('annual_leave_days', 21)) || 21;
@@ -269,12 +276,24 @@ function rejectLeave(payload) {
 }
 
 // =============================================================================
-// Private: count inclusive calendar days between two YYYY-MM-DD strings.
+// Private: normalise a Leaves date cell to a YYYY-MM-DD string.
+// Sheets returns date-formatted cells as Date objects; plain-text cells as
+// strings. Either way this yields the stored YYYY-MM-DD format.
+// =============================================================================
+function _normaliseLeaveDate(val) {
+  if (!val) return '';
+  if (val instanceof Date) return formatDate(val);
+  return String(val).trim();
+}
+
+// =============================================================================
+// Private: count inclusive calendar days between two dates.
+// Accepts YYYY-MM-DD strings or Date objects (Sheets date cells).
 // 2026-06-01 → 2026-06-03  =  3 days
 // =============================================================================
 function _countDays(startDate, endDate) {
-  const s = new Date(startDate + 'T00:00:00Z');
-  const e = new Date(endDate   + 'T00:00:00Z');
+  const s = new Date(_normaliseLeaveDate(startDate) + 'T00:00:00Z');
+  const e = new Date(_normaliseLeaveDate(endDate)   + 'T00:00:00Z');
   if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
   return Math.max(0, Math.round((e - s) / 86400000) + 1);
 }
