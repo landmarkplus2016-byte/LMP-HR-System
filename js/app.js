@@ -60,6 +60,8 @@ const NAV_ITEMS = {
     { hash: 'team',            icon: Icons.team,      labelKey: 'nav.team'          },
     { hash: 'team-attendance', icon: Icons.clipboard, labelKey: 'nav.attendance'    },
     { hash: 'team-leaves',     icon: Icons.calendar,  labelKey: 'nav.leave_requests'},
+    { hash: 'home',            icon: Icons.home,      labelKey: 'nav.home'          },
+    { hash: 'history',         icon: Icons.history,   labelKey: 'nav.history'       },
   ],
   hr: [
     { hash: 'dashboard',      icon: Icons.dashboard, labelKey: 'nav.dashboard'     },
@@ -81,7 +83,7 @@ const NAV_ITEMS = {
 // ---------------------------------------------------------------------------
 const ROUTES = {
   'home':             ['employee', 'manager', 'hr'],
-  'history':          ['employee'],
+  'history':          ['employee', 'manager'],
   'leave':            ['employee'],
   'leave-balance':    ['employee'],
   'team':             ['manager', 'hr'],
