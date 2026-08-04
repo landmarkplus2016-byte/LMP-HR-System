@@ -185,10 +185,16 @@ function ok(data) {
 
 // Error response — always includes both language strings so api.js can pick
 // the correct one based on the client's lmp_lang setting.
-function error(messageEn, messageAr) {
-  return {
+//
+// `code` is an optional machine-readable identifier for the cases where the
+// frontend must react to a specific failure rather than just display it
+// (e.g. 'biometric_not_registered' triggers the re-registration flow).
+function error(messageEn, messageAr, code) {
+  const res = {
     status: 'error',
     message_en: messageEn,
     message_ar: messageAr || messageEn
   };
+  if (code) res.code = code;
+  return res;
 }

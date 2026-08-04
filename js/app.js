@@ -394,6 +394,19 @@ function _renderBottomNav(nav, app, items, curHash) {
     nav.appendChild(a);
   });
 
+  // Language toggle — the sidebar footer is desktop-only, so mobile users need
+  // their own way to switch language after logging in.
+  const currentLang = localStorage.getItem('lmp_lang') || 'ar';
+  const langBtn = document.createElement('button');
+  langBtn.type      = 'button';
+  langBtn.id        = 'lang-toggle-btn';
+  langBtn.className = 'nav-tab nav-tab-lang';
+  langBtn.setAttribute('aria-label', t('nav.toggle_language') || 'تبديل اللغة');
+  langBtn.innerHTML = `
+    <span class="nav-tab-icon">${Icons.lang}</span>
+    <span class="nav-tab-label">${currentLang === 'ar' ? 'English' : 'العربية'}</span>`;
+  nav.appendChild(langBtn);
+
   // Signout tab — always last on mobile
   const signoutBtn = document.createElement('button');
   signoutBtn.type      = 'button';

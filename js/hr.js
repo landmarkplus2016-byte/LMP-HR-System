@@ -2638,6 +2638,13 @@ function _renderConfigForm(cfg) {
               value="${_esc(String(cfg.session_expiry_hours || '8'))}">
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>${t('config.annual_leave_days')}</label>
+            <input id="cfg-annual-leave" type="number" min="0" max="60" class="input" dir="ltr"
+              value="${_esc(String(cfg.annual_leave_days || '21'))}">
+          </div>
+        </div>
       </div>
 
       <div class="config-section">
@@ -2703,6 +2710,7 @@ async function _saveConfig() {
     late_threshold_min:    document.getElementById('cfg-late')?.value        || '15',
     gps_accuracy_max_m:    document.getElementById('cfg-gps-acc')?.value     || '200',
     session_expiry_hours:  document.getElementById('cfg-session')?.value     || '8',
+    annual_leave_days:     document.getElementById('cfg-annual-leave')?.value || '21',
     primary_language:      document.getElementById('cfg-lang')?.value        || 'ar',
     working_days:          wdVals.join(','),
     auto_checkout_enabled: document.getElementById('cfg-auto-checkout')?.checked  ? 'TRUE' : 'FALSE',
@@ -3117,11 +3125,13 @@ async function _deleteShift(shiftId) {
 
 let _leavesAllRecords   = [];
 let _leavesStatusFilter = '';
+let _leaveBalances      = [];
 
 async function renderLeaveRequests(container) {
   _cancelLiveTimer();
   _leavesAllRecords   = [];
   _leavesStatusFilter = '';
+  _leaveBalances      = [];
 
   container.innerHTML = `
     <div class="view-content">
@@ -3153,12 +3163,44 @@ async function renderLeaveRequests(container) {
               <th>${t('date.from')}</th>
               <th>${t('date.to')}</th>
               <th>${t('leave.days')}</th>
+              <th>${t('leave.remaining')}</th>
               <th>${t('leave.reason')}</th>
               <th>${t('attendance.status')}</th>
               <th>${t('action.actions')}</th>
             </tr>
           </thead>
-          <tbody id="leave-tbody">${_skeletonTableRows(6, 9)}</tbody>
+          <tbody id="leave-tbody">${_skeletonTableRows(6, 10)}</tbody>
+        </table>
+      </div>
+
+      <div class="view-header" style="margin-block-start:var(--sp-6)">
+        <div>
+          <h2 class="view-title" style="font-size:var(--text-lg)">${t('leave.balances_title')}</h2>
+          <p class="dashboard-date" id="balance-subtitle">${t('leave.balances_hint')}</p>
+        </div>
+      </div>
+
+      <div class="data-table-wrap">
+        <div class="table-toolbar">
+          <div class="table-toolbar-actions">
+            <input type="search" class="table-toolbar-search" id="balance-search"
+                   placeholder="${t('action.search')}" autocomplete="off">
+            <span class="count-badge" id="balance-count">—</span>
+          </div>
+        </div>
+
+        <table class="data-table" id="balance-table">
+          <thead>
+            <tr>
+              <th>${t('employees.name')}</th>
+              <th>${t('employees.department')}</th>
+              <th>${t('leave.entitlement')}</th>
+              <th>${t('leave.taken_this_year')}</th>
+              <th>${t('leave.pending_days')}</th>
+              <th>${t('leave.remaining')}</th>
+            </tr>
+          </thead>
+          <tbody id="balance-tbody">${_skeletonTableRows(6, 6)}</tbody>
         </table>
       </div>
     </div>`;
@@ -3168,12 +3210,24 @@ async function renderLeaveRequests(container) {
 
   if (res.status !== 'ok') {
     document.getElementById('leave-tbody').innerHTML =
-      `<tr><td colspan="9" class="table-empty">${_esc(res.message || t('error.server'))}</td></tr>`;
+      `<tr><td colspan="10" class="table-empty">${_esc(res.message || t('error.server'))}</td></tr>`;
+    document.getElementById('balance-tbody').innerHTML =
+      `<tr><td colspan="6" class="table-empty">${_esc(res.message || t('error.server'))}</td></tr>`;
     return;
   }
 
   _leavesAllRecords = Array.isArray(res.data?.requests) ? res.data.requests : [];
+  _leaveBalances    = Array.isArray(res.data?.balances) ? res.data.balances : [];
   _renderLeaveTable('');
+  _renderBalanceTable('');
+
+  const year = res.data?.year;
+  const subtitle = document.getElementById('balance-subtitle');
+  if (subtitle && year) subtitle.textContent = `${t('leave.balances_hint')} — ${year}`;
+
+  document.getElementById('balance-search')?.addEventListener('input', function() {
+    _renderBalanceTable(this.value.trim().toLowerCase());
+  });
 
   document.getElementById('leave-filter-tabs')?.addEventListener('click', function(e) {
     const tab = e.target.closest('[data-status]');
@@ -3216,7 +3270,7 @@ function _renderLeaveTable(query) {
   if (countEl) countEl.textContent = rows.length;
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="table-empty">${t('leave.no_requests')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="table-empty">${t('leave.no_requests')}</td></tr>`;
     return;
   }
 
@@ -3250,9 +3304,10 @@ function _hrLeaveRow(l) {
       <td style="font-weight:var(--fw-medium)">${_esc(l.employee_name || l.employee_id || '')}</td>
       <td>${_esc(l.department || '')}</td>
       <td>${_esc(typeLabel)}</td>
-      <td dir="ltr">${_esc(l.start_date || '')}</td>
-      <td dir="ltr">${_esc(l.end_date   || '')}</td>
+      <td dir="ltr">${_esc(_fmtDate(l.start_date))}</td>
+      <td dir="ltr">${_esc(_fmtDate(l.end_date))}</td>
       <td style="text-align:center" dir="ltr">${days}</td>
+      <td style="text-align:center">${_leaveBalanceCell(l)}</td>
       <td class="leave-reason-cell">${_esc(l.reason || '—')}</td>
       <td><span class="badge ${_esc(statusClass)}">${_esc(statusLabel)}</span></td>
       <td>
@@ -3277,6 +3332,102 @@ function _leaveDaysCount(startDate, endDate) {
   } catch (_) { return '—'; }
 }
 
+// ── Annual balance ────────────────────────────────────────────────────────────
+// Remaining annual days of the employee who filed this request, shown inline so
+// HR can judge an approval without leaving the row.
+function _leaveBalanceCell(l) {
+  if (l.annual_remaining === undefined || l.annual_remaining === null) return '—';
+  const remaining = Number(l.annual_remaining) || 0;
+  const total     = Number(l.annual_total)     || 0;
+  return `<span class="badge ${_balanceBadgeClass(remaining)}" dir="ltr"
+                title="${_esc(t('leave.remaining'))}">${remaining} / ${total}</span>`;
+}
+
+// Green when there is room left, amber when running low, red when exhausted.
+function _balanceBadgeClass(remaining) {
+  if (remaining <= 0) return 'badge-absent';
+  if (remaining <= 5) return 'badge-late';
+  return 'badge-present';
+}
+
+// Recompute one employee's annual balance from the records already in memory,
+// so approving or rejecting updates the balance table without another round
+// trip. Mirrors the server calculation in Leaves.gs _annualBalances().
+function _recomputeBalanceFor(employeeId) {
+  const bal = _leaveBalances.find(function(b) {
+    return String(b.employee_id) === String(employeeId);
+  });
+  if (!bal) return;
+
+  const year = String(new Date().getFullYear());
+  let taken = 0, pending = 0;
+
+  _leavesAllRecords.forEach(function(l) {
+    if (String(l.employee_id) !== String(employeeId)) return;
+    if (String(l.leave_type || '').toLowerCase() !== 'annual') return;
+    if (!String(l.start_date || '').startsWith(year)) return;
+
+    const days = Number(_leaveDaysCount(l.start_date, l.end_date));
+    if (isNaN(days)) return;
+
+    const status = String(l.status || '').toLowerCase();
+    if (status === 'approved')     taken   += days;
+    else if (status === 'pending') pending += days;
+  });
+
+  bal.annual_taken     = taken;
+  bal.annual_pending   = pending;
+  bal.annual_remaining = Math.max(0, (Number(bal.annual_total) || 0) - taken);
+
+  // Keep the inline per-request balance in step with the table
+  _leavesAllRecords.forEach(function(l) {
+    if (String(l.employee_id) !== String(employeeId)) return;
+    l.annual_taken     = bal.annual_taken;
+    l.annual_pending   = bal.annual_pending;
+    l.annual_remaining = bal.annual_remaining;
+  });
+}
+
+// ── Annual leave balance table — one row per active employee ──────────────────
+function _renderBalanceTable(query) {
+  const tbody = document.getElementById('balance-tbody');
+  if (!tbody) return;
+
+  let rows = _leaveBalances;
+  if (query) {
+    rows = rows.filter(function(b) {
+      return (b.employee_name || '').toLowerCase().includes(query) ||
+             (b.department    || '').toLowerCase().includes(query);
+    });
+  }
+
+  const countEl = document.getElementById('balance-count');
+  if (countEl) countEl.textContent = rows.length;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">${t('placeholder.no_data')}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(function(b) {
+    const remaining = Number(b.annual_remaining) || 0;
+    const pending   = Number(b.annual_pending)   || 0;
+    return `
+      <tr>
+        <td style="font-weight:var(--fw-medium)">${_esc(b.employee_name || '')}</td>
+        <td>${_esc(b.department || '')}</td>
+        <td style="text-align:center" dir="ltr">${Number(b.annual_total) || 0}</td>
+        <td style="text-align:center" dir="ltr">${Number(b.annual_taken) || 0}</td>
+        <td style="text-align:center" dir="ltr">
+          ${pending > 0 ? `<span class="badge badge-pending" dir="ltr">${pending}</span>` : '—'}
+        </td>
+        <td style="text-align:center">
+          <span class="badge ${_balanceBadgeClass(remaining)}" dir="ltr">${remaining}</span>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
 async function _hrApproveLeave(leaveId) {
   const btn = document.querySelector(`.leave-approve-btn[data-id="${CSS.escape(leaveId)}"]`);
   if (btn) { btn.disabled = true; btn.textContent = t('action.loading'); }
@@ -3286,8 +3437,12 @@ async function _hrApproveLeave(leaveId) {
   if (res.status === 'ok') {
     showToast(t('status.approved'), 'success');
     const rec = _leavesAllRecords.find(function(l) { return l.id === leaveId; });
-    if (rec) rec.status = 'approved';
+    if (rec) {
+      rec.status = 'approved';
+      _recomputeBalanceFor(rec.employee_id);
+    }
     _renderLeaveTable((document.getElementById('leave-search')?.value || '').trim().toLowerCase());
+    _renderBalanceTable((document.getElementById('balance-search')?.value || '').trim().toLowerCase());
   } else {
     showToast(res.message || t('error.server'), 'error');
     if (btn) { btn.disabled = false; btn.textContent = t('action.approve'); }
@@ -3303,8 +3458,12 @@ async function _hrRejectLeave(leaveId) {
   if (res.status === 'ok') {
     showToast(t('status.rejected'), 'warning');
     const rec = _leavesAllRecords.find(function(l) { return l.id === leaveId; });
-    if (rec) rec.status = 'rejected';
+    if (rec) {
+      rec.status = 'rejected';
+      _recomputeBalanceFor(rec.employee_id);
+    }
     _renderLeaveTable((document.getElementById('leave-search')?.value || '').trim().toLowerCase());
+    _renderBalanceTable((document.getElementById('balance-search')?.value || '').trim().toLowerCase());
   } else {
     showToast(res.message || t('error.server'), 'error');
     if (btn) { btn.disabled = false; btn.textContent = t('action.reject'); }

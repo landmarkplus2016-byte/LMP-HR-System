@@ -54,6 +54,17 @@
   font-weight: var(--fw-medium);
   line-height: 1;
   text-align: center;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Language toggle tab — never squeezes the navigation items */
+.nav-tab-lang {
+  flex: 0 0 auto;
+  min-width: 62px;
+  padding-inline: var(--sp-2);
 }
 
 .nav-tab.nav-active .nav-tab-label {
@@ -274,6 +285,48 @@
 }
 
 .bio-reg-btn { min-width: 160px; }
+
+/* Step-by-step recovery instructions when the device cannot do WebAuthn */
+.bio-help {
+  width: 100%;
+  text-align: start;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow-xs);
+}
+
+.bio-help-title {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semi);
+  color: var(--c-text);
+  margin-block-end: var(--sp-3);
+}
+
+.bio-help-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-inline-start: var(--sp-5);
+  margin: 0;
+  list-style: decimal;
+}
+
+.bio-help-steps li {
+  font-size: var(--text-sm);
+  color: var(--c-text-secondary);
+  line-height: var(--lh-snug);
+}
+
+.bio-help-footer {
+  margin-block-start: var(--sp-3);
+  padding-block-start: var(--sp-3);
+  border-block-start: 1px dashed var(--c-border);
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  line-height: var(--lh-snug);
+}
 
 /* ── Employee: attendance history list ──────────────────────────────────────── */
 
@@ -905,6 +958,94 @@
 .mgr-leave-actions .btn {
   flex: 1;
   justify-content: center;
+}
+
+/* Remaining annual balance of the requester, inside the approval card */
+.mgr-leave-balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding-block-start: var(--sp-2);
+  border-block-start: 1px dashed var(--c-border);
+}
+
+.mgr-leave-balance-label {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+}
+
+/* ── Manager: team annual leave balances ────────────────────────────────────── */
+
+.mgr-balance-section {
+  margin-block-start: var(--sp-6);
+}
+
+.mgr-balance-section .mgr-section-title {
+  display: block;
+  margin-block-end: var(--sp-3);
+}
+
+.mgr-balance-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: 0;
+}
+
+.mgr-balance-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--shadow-xs);
+  list-style: none;
+}
+
+.mgr-balance-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Proportion of the annual entitlement already taken */
+.mgr-balance-bar {
+  display: block;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--c-surface-hover);
+  overflow: hidden;
+}
+
+.mgr-balance-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--c-primary);
+  border-radius: var(--r-full);
+  transition: width var(--dur-base) var(--ease-io);
+}
+
+.mgr-balance-sub {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+}
+
+.mgr-balance-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mgr-balance-label {
+  font-size: 10px;
+  color: var(--c-text-muted);
 }
 
 /* ── Manager: error state ───────────────────────────────────────────────────── */

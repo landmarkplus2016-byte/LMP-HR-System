@@ -4,7 +4,7 @@
 // Handlers (called from Code.gs router):
 //   submitLeave(payload)    — Employee: create a pending leave request
 //   getMyLeaves(payload)    — Employee: own requests + annual balance
-//   getTeamLeaves(payload)  — Manager/HR: pending requests for their team
+//   getTeamLeaves(payload)  — Manager/HR: requests + annual balances for their team
 //   approveLeave(payload)   — Manager/HR: approve a pending request
 //   rejectLeave(payload)    — Manager/HR: reject a pending request
 //
@@ -116,17 +116,23 @@ function getMyLeaves(payload) {
   const annualTotal = Number(getConfigValue('annual_leave_days', 21)) || 21;
   const currentYear = String(new Date().getFullYear());
 
-  const annualTaken = requests
-    .filter(l =>
-      String(l.leave_type) === 'annual' &&
-      String(l.status)     === 'approved' &&
-      String(l.start_date  || '').startsWith(currentYear)
-    )
+  const annualThisYear = requests.filter(l =>
+    String(l.leave_type) === 'annual' &&
+    String(l.start_date  || '').startsWith(currentYear)
+  );
+
+  const annualTaken = annualThisYear
+    .filter(l => String(l.status) === 'approved')
+    .reduce((sum, l) => sum + _countDays(l.start_date, l.end_date), 0);
+
+  const annualPending = annualThisYear
+    .filter(l => String(l.status) === 'pending')
     .reduce((sum, l) => sum + _countDays(l.start_date, l.end_date), 0);
 
   const balance = {
     annual_total:     annualTotal,
     annual_taken:     annualTaken,
+    annual_pending:   annualPending,
     annual_remaining: Math.max(0, annualTotal - annualTaken)
   };
 
@@ -136,7 +142,12 @@ function getMyLeaves(payload) {
 // =============================================================================
 // getTeamLeaves
 // Manager sees pending leaves for their direct reports.
-// HR sees all pending leaves company-wide.
+// HR sees all leaves company-wide.
+//
+// Also returns `balances` — the annual leave balance for every employee in
+// scope — so managers and HR can see how much entitlement someone has left
+// before approving a request. Each returned request also carries the
+// requester's annual_total / annual_taken / annual_remaining inline.
 // =============================================================================
 function getTeamLeaves(payload) {
   const auth = validateSession(payload);
@@ -169,7 +180,14 @@ function getTeamLeaves(payload) {
     empMap[String(e.id)] = { name: String(e.name || e.username || e.id), department: String(e.department || '') };
   });
 
-  const requests = sheetToObjects(getSheet('Leaves'))
+  const allLeaves = sheetToObjects(getSheet('Leaves'));
+
+  // Balances are computed from every leave row of the team — not just the
+  // filtered/visible ones — otherwise a manager's pending-only view would
+  // report a zero balance for everyone.
+  const balanceMap = _annualBalances(teamIds, allLeaves);
+
+  const requests = allLeaves
     .filter(function(l) {
       if (!teamIds.includes(String(l.employee_id))) return false;
       // Managers only see pending requests (their approval queue).
@@ -186,10 +204,89 @@ function getTeamLeaves(payload) {
     const emp = empMap[String(l.employee_id)] || {};
     l.employee_name = emp.name       || '';
     l.department    = emp.department || '';
+
+    // Sheets hands back date-formatted cells as Date objects — normalise so the
+    // frontend always receives YYYY-MM-DD strings.
+    l.start_date = _normaliseLeaveDate(l.start_date);
+    l.end_date   = _normaliseLeaveDate(l.end_date);
+
+    // Requester's balance inline — lets the approver see what's left without a lookup
+    const bal = balanceMap[String(l.employee_id)];
+    if (bal) {
+      l.annual_total     = bal.annual_total;
+      l.annual_taken     = bal.annual_taken;
+      l.annual_pending   = bal.annual_pending;
+      l.annual_remaining = bal.annual_remaining;
+    }
+
     delete l.__rowIndex;
   });
 
-  return ok({ requests });
+  // One balance row per team member, sorted by name for a stable table
+  const balances = teamIds
+    .map(function(id) {
+      const emp = empMap[id] || {};
+      const bal = balanceMap[id];
+      return {
+        employee_id:      id,
+        employee_name:    emp.name       || id,
+        department:       emp.department || '',
+        annual_total:     bal.annual_total,
+        annual_taken:     bal.annual_taken,
+        annual_pending:   bal.annual_pending,
+        annual_remaining: bal.annual_remaining
+      };
+    })
+    .sort(function(a, b) {
+      return String(a.employee_name).localeCompare(String(b.employee_name));
+    });
+
+  return ok({ requests, balances, year: new Date().getFullYear() });
+}
+
+// =============================================================================
+// Private: annual leave balance for a set of employees.
+//
+// Counts approved and pending annual-leave days that START in the current
+// calendar year. Pending days are reported separately — they are not yet
+// deducted from the remaining balance, but an approver needs to see them.
+//
+// Returns { employeeId: { annual_total, annual_taken, annual_pending, annual_remaining } }
+// =============================================================================
+function _annualBalances(employeeIds, allLeaves) {
+  const annualTotal = Number(getConfigValue('annual_leave_days', 21)) || 21;
+  const currentYear = String(new Date().getFullYear());
+
+  const map = {};
+  employeeIds.forEach(function(id) {
+    map[String(id)] = {
+      annual_total:     annualTotal,
+      annual_taken:     0,
+      annual_pending:   0,
+      annual_remaining: annualTotal
+    };
+  });
+
+  allLeaves.forEach(function(l) {
+    const bucket = map[String(l.employee_id)];
+    if (!bucket) return;
+    if (String(l.leave_type || '').toLowerCase() !== 'annual') return;
+
+    const start = _normaliseLeaveDate(l.start_date);
+    if (!start.startsWith(currentYear)) return;
+
+    const days   = _countDays(start, l.end_date);
+    const status = String(l.status || '').toLowerCase();
+
+    if (status === 'approved')     bucket.annual_taken   += days;
+    else if (status === 'pending') bucket.annual_pending += days;
+  });
+
+  Object.keys(map).forEach(function(id) {
+    map[id].annual_remaining = Math.max(0, map[id].annual_total - map[id].annual_taken);
+  });
+
+  return map;
 }
 
 // =============================================================================

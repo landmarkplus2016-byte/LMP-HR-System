@@ -345,7 +345,8 @@ function webauthnRegisterComplete(payload) {
   if (String(auth.employee.webauthn_credential_id || '').trim()) {
     return error(
       'Biometric already registered for this account. Ask HR to reset it before registering on a new device.',
-      'البصمة مسجّلة بالفعل لهذا الحساب. اطلب من إدارة الموارد البشرية إعادة تعيينها قبل التسجيل على جهاز جديد.'
+      'البصمة مسجّلة بالفعل لهذا الحساب. اطلب من إدارة الموارد البشرية إعادة تعيينها قبل التسجيل على جهاز جديد.',
+      'biometric_already_registered'
     );
   }
 
@@ -491,11 +492,21 @@ function webauthnAuthVerify(payload) {
   // Verify credential ID matches the registered credential
   const storedCredId = String(auth.employee.webauthn_credential_id || '').trim();
   if (!storedCredId) {
-    return error('Biometric not registered for this account', 'البصمة غير مسجّلة لهذا الحساب');
+    // HR cleared the credential (reset / new phone) while this device still
+    // holds a stale local one — the code tells the PWA to re-register.
+    return error(
+      'Biometric not registered for this account',
+      'البصمة غير مسجّلة لهذا الحساب',
+      'biometric_not_registered'
+    );
   }
   if (storedCredId !== sr.credentialId) {
     _recordWebAuthnFailure(auth.employee.id);
-    return error('Credential mismatch', 'بيانات الاعتماد غير متطابقة');
+    return error(
+      'Credential mismatch',
+      'بيانات الاعتماد غير متطابقة',
+      'biometric_credential_mismatch'
+    );
   }
 
   // Mark challenge as used — single-use enforcement

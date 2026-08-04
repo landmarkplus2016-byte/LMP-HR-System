@@ -143,7 +143,12 @@
     "new_request": "New request",
     "taken_this_year": "Days taken this year",
     "filter_all": "All",
-    "days": "Days"
+    "days": "Days",
+    "remaining": "Remaining",
+    "entitlement": "Annual entitlement",
+    "pending_days": "Pending days",
+    "balances_title": "Annual leave balances",
+    "balances_hint": "Approved annual leave days used this year"
   },
 
   "team": {
@@ -257,6 +262,7 @@
     "late_threshold": "Late threshold (min)",
     "gps_accuracy_max": "Max GPS accuracy (m)",
     "session_expiry": "Session duration (hours)",
+    "annual_leave_days": "Annual leave days per year",
     "auto_checkout": "Auto checkout",
     "offline_sync": "Offline sync",
     "primary_language": "Default language",
@@ -357,7 +363,39 @@
     "register_success": "Fingerprint registered successfully",
     "register_failed": "Fingerprint registration failed. Try again.",
     "not_supported": "Your device does not support fingerprint authentication",
-    "verifying": "Verifying fingerprint…"
+    "verifying": "Verifying fingerprint…",
+    "checking_device": "Checking your device…",
+    "cancelled": "The fingerprint prompt was cancelled or timed out. Try again — you can also use your phone's PIN or pattern.",
+    "no_sensor": "No fingerprint sensor was found on this phone. You can use your screen lock PIN or pattern instead.",
+    "no_screen_lock": "Set up a screen lock (PIN, pattern or fingerprint) on your phone first, then try again.",
+    "insecure_context": "The app must be opened over a secure HTTPS link for fingerprint to work.",
+    "origin_error": "The app was opened from an unrecognised address. Open it from the official link or the installed app icon.",
+    "already_on_device": "This fingerprint is already registered on this phone.",
+    "timeout": "The fingerprint prompt timed out. Try again.",
+    "device_error": "Your phone could not complete the fingerprint step. Try again.",
+    "help_title": "How to fix this",
+    "help_contact_hr": "If it still does not work, contact HR — they can exempt your account from fingerprint.",
+    "help_screen_lock": {
+      "s1": "Open your phone Settings → Security (or Lock screen).",
+      "s2": "Set a screen lock — PIN, pattern or password.",
+      "s3": "Add your fingerprint under Fingerprint. If your phone has no sensor, the PIN or pattern is enough.",
+      "s4": "Return to the app and tap Retry."
+    },
+    "help_insecure": {
+      "s1": "Close the app and open it from the official company link (it must start with https).",
+      "s2": "Add the app to your home screen from that link.",
+      "s3": "Open it again from the home screen icon and tap Retry."
+    },
+    "help_browser": {
+      "s1": "Open the app in Chrome (Android) or Safari (iPhone).",
+      "s2": "Update the browser to the latest version from the app store.",
+      "s3": "Open the app again and tap Retry."
+    },
+    "help_hr_reset": {
+      "s1": "Your fingerprint is registered on another phone.",
+      "s2": "Ask HR to run Reset Biometric on your employee record.",
+      "s3": "Sign in again on this phone and register your fingerprint."
+    }
   },
 
   "sync": {

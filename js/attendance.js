@@ -130,6 +130,12 @@ async function _runCheckIn(container, user) {
     const bio = await verifyFingerprint();
     if (!bio.verified) {
       _isProcessing = false;
+      // Credential gone from this device or cleared by HR — send them back
+      // through registration instead of failing repeatedly.
+      if (bio.needsRegistration) {
+        _renderRegistrationPrompt(container, user);
+        return;
+      }
       _setBtnState(btn, false, t('checkin.button'));
       _showMsg(msg, bio.reason || t('biometric.failed'), 'error');
       _rewireOnce(btn, () => _runCheckIn(container, user));
@@ -210,6 +216,10 @@ async function _runCheckOut(container, user) {
     const bio = await verifyFingerprint();
     if (!bio.verified) {
       _isProcessing = false;
+      if (bio.needsRegistration) {
+        _renderRegistrationPrompt(container, user);
+        return;
+      }
       _setBtnState(btn, false, t('checkout.button'));
       _showMsg(msg, bio.reason || t('biometric.failed'), 'error');
       _rewireOnce(btn, () => _runCheckOut(container, user));
@@ -298,7 +308,7 @@ function _renderDoneState(container) {
 // ---------------------------------------------------------------------------
 // Biometric registration interstitial
 // ---------------------------------------------------------------------------
-function _renderRegistrationPrompt(container, user) {
+async function _renderRegistrationPrompt(container, user) {
   const area = container.querySelector('.checkin-action-area');
   if (!area) return;
 
@@ -306,29 +316,104 @@ function _renderRegistrationPrompt(container, user) {
     <div class="bio-reg-card">
       <div class="bio-reg-icon" aria-hidden="true">${_svgFingerprint()}</div>
       <p class="bio-reg-title">${t('biometric.register_prompt')}</p>
-      <p class="bio-reg-sub">${t('biometric.not_registered')}</p>
-      <button class="btn btn-primary bio-reg-btn" id="bio-reg-btn" type="button">
+      <p class="bio-reg-sub">${t('biometric.checking_device')}</p>
+      <button class="btn btn-primary bio-reg-btn" id="bio-reg-btn" type="button" disabled>
         ${t('action.confirm')}
       </button>
       <div class="checkin-msg" id="reg-msg" role="alert" aria-live="assertive" hidden></div>
+      <div class="bio-help" id="bio-help" hidden></div>
     </div>`;
 
   const startBtn = container.querySelector('#bio-reg-btn');
   const regMsg   = container.querySelector('#reg-msg');
+  const subEl    = container.querySelector('.bio-reg-sub');
 
-  startBtn?.addEventListener('click', async () => {
+  // Probe the device before offering the button — phones with no screen lock
+  // or no usable sensor get instructions instead of a prompt that will fail.
+  const cap = typeof checkCapability === 'function'
+    ? await checkCapability()
+    : { ok: true };
+
+  if (!container.querySelector('#bio-reg-btn')) return; // navigated away
+
+  if (!cap.ok) {
+    if (subEl) subEl.textContent = t(cap.reasonKey);
+    if (startBtn) {
+      startBtn.disabled    = false;
+      startBtn.textContent = t('action.retry');
+      startBtn.addEventListener('click', () => _renderRegistrationPrompt(container, user));
+    }
+    _showBiometricHelp(container, cap.helpKey);
+    return;
+  }
+
+  if (subEl) subEl.textContent = t('biometric.not_registered');
+  if (!startBtn) return;
+  startBtn.disabled = false;
+
+  startBtn.addEventListener('click', async () => {
     startBtn.disabled    = true;
     startBtn.textContent = t('biometric.registering');
     const res = await registerFingerprint();
+
+    if (!container.querySelector('#bio-reg-btn')) return; // navigated away mid-prompt
+
     if (res.success) {
       if (typeof showToast === 'function') showToast(t('biometric.register_success'), 'success');
       renderEmployeeHome(container);
-    } else {
-      startBtn.disabled    = false;
-      startBtn.textContent = t('action.retry');
-      if (regMsg) { regMsg.textContent = res.reason || t('biometric.register_failed'); regMsg.hidden = false; }
+      return;
     }
+
+    startBtn.disabled    = false;
+    startBtn.textContent = t('action.retry');
+    if (regMsg) {
+      regMsg.textContent = res.reason || t('biometric.register_failed');
+      regMsg.className   = 'checkin-msg checkin-msg-error';
+      regMsg.hidden      = false;
+    }
+
+    // A credential already on file means this account is registered on another
+    // phone — only HR can clear it. Anything else is a device-side problem the
+    // employee can usually fix themselves.
+    _showBiometricHelp(
+      container,
+      res.code === 'biometric_already_registered'
+        ? 'biometric.help_hr_reset'
+        : (res.helpKey || 'biometric.help_screen_lock')
+    );
   });
+}
+
+// ---------------------------------------------------------------------------
+// Help panel — numbered, bilingual steps for the failure the employee hit.
+// Steps live in the locale files under the given key as s1, s2, s3…
+// ---------------------------------------------------------------------------
+function _showBiometricHelp(container, helpKey) {
+  const help = container.querySelector('#bio-help');
+  if (!help || !helpKey) return;
+
+  const steps = _helpSteps(helpKey);
+
+  help.innerHTML = `
+    <p class="bio-help-title">${t('biometric.help_title')}</p>
+    <ol class="bio-help-steps">
+      ${steps.map(s => `<li>${s}</li>`).join('')}
+    </ol>
+    <p class="bio-help-footer">${t('biometric.help_contact_hr')}</p>`;
+  help.hidden = false;
+}
+
+// Each help entry is an object of numbered step keys (s1, s2, …) in the locale
+// files. Read them in order and stop at the first one that is missing.
+function _helpSteps(helpKey) {
+  const steps = [];
+  for (let i = 1; i <= 6; i++) {
+    const key   = `${helpKey}.s${i}`;
+    const value = t(key);
+    if (value === key) break;
+    steps.push(value);
+  }
+  return steps.length ? steps : [t('biometric.help_contact_hr')];
 }
 
 // ---------------------------------------------------------------------------

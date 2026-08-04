@@ -63,10 +63,10 @@ async function _loadTeamStatus() {
 
   document.getElementById('mgr-status-body').innerHTML = `
     <div class="mgr-stat-grid" role="list" aria-label="${t('team.status_today')}">
-      ${_statCard(summary.present,  t('team.present_count'), 'present')}
-      ${_statCard(summary.absent,   t('team.absent_count'),  'absent')}
-      ${_statCard(summary.late,     t('team.late_count'),    'late')}
-      ${_statCard(summary.on_leave, t('team.leave_count'),   'leave')}
+      ${_mgrStatCard(summary.present,  t('team.present_count'), 'present')}
+      ${_mgrStatCard(summary.absent,   t('team.absent_count'),  'absent')}
+      ${_mgrStatCard(summary.late,     t('team.late_count'),    'late')}
+      ${_mgrStatCard(summary.on_leave, t('team.leave_count'),   'leave')}
     </div>
 
     <div class="mgr-section-header">
@@ -145,7 +145,7 @@ async function _loadTeamAttendance(date) {
     return;
   }
 
-  body.innerHTML = records.map(r => _attRow(r)).join('');
+  body.innerHTML = records.map(r => _mgrAttRow(r)).join('');
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +163,11 @@ function renderTeamLeaves(container) {
       <ul class="mgr-leave-list" id="mgr-leave-body" role="list">
         ${_skeletonLeave()}
       </ul>
+
+      <section class="mgr-balance-section" id="mgr-balance-section" hidden>
+        <h2 class="mgr-section-title" id="mgr-balance-title">${t('leave.balances_title')}</h2>
+        <ul class="mgr-balance-list" id="mgr-balance-body" role="list"></ul>
+      </section>
     </div>`;
 
   _loadTeamLeaves();
@@ -180,7 +185,11 @@ async function _loadTeamLeaves() {
     return;
   }
 
-  const { requests } = res.data;
+  const { requests, balances, year } = res.data;
+
+  // Team annual balances — rendered regardless of whether anything is pending,
+  // so a manager can check entitlement at any time.
+  _renderTeamBalances(balances, year);
 
   if (!requests || requests.length === 0) {
     body.innerHTML = `
@@ -201,6 +210,79 @@ async function _loadTeamLeaves() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Team annual leave balances — remaining entitlement per team member
+// ---------------------------------------------------------------------------
+function _renderTeamBalances(balances, year) {
+  const section = document.getElementById('mgr-balance-section');
+  const list    = document.getElementById('mgr-balance-body');
+  if (!section || !list) return;
+
+  if (!Array.isArray(balances) || balances.length === 0) {
+    section.hidden = true;
+    return;
+  }
+
+  const title = document.getElementById('mgr-balance-title');
+  if (title) title.textContent = year
+    ? `${t('leave.balances_title')} — ${year}`
+    : t('leave.balances_title');
+
+  list.innerHTML = balances.map(b => {
+    const remaining = Number(b.annual_remaining) || 0;
+    const total     = Number(b.annual_total)     || 0;
+    const taken     = Number(b.annual_taken)     || 0;
+    const pending   = Number(b.annual_pending)   || 0;
+    const pct       = total > 0 ? Math.min(100, Math.round((taken / total) * 100)) : 0;
+
+    return `
+      <li class="mgr-balance-row">
+        <span class="mgr-avatar" aria-hidden="true">${_esc(_mgrInitials(b.employee_name))}</span>
+        <span class="mgr-balance-info">
+          <span class="mgr-member-name">${_esc(b.employee_name || '')}</span>
+          <span class="mgr-balance-bar" aria-hidden="true">
+            <span class="mgr-balance-bar-fill" style="width:${pct}%"></span>
+          </span>
+          <span class="mgr-balance-sub">
+            ${t('leave.taken_this_year')}: <span dir="ltr">${taken}</span>
+            ${pending > 0 ? ` · ${t('leave.pending_days')}: <span dir="ltr">${pending}</span>` : ''}
+          </span>
+        </span>
+        <span class="mgr-balance-right">
+          <span class="badge ${_mgrBalanceBadgeClass(remaining)}" dir="ltr">${remaining} / ${total}</span>
+          <span class="mgr-balance-label">${t('leave.remaining')}</span>
+        </span>
+      </li>`;
+  }).join('');
+
+  section.hidden = false;
+}
+
+// Requester's remaining annual balance, shown on the approval card so the
+// manager can decide without opening another screen.
+function _leaveBalanceChip(l) {
+  if (l.annual_remaining === undefined || l.annual_remaining === null) return '';
+  const remaining = Number(l.annual_remaining) || 0;
+  const total     = Number(l.annual_total)     || 0;
+  return `
+    <div class="mgr-leave-balance">
+      <span class="mgr-leave-balance-label">${t('leave.balance')}</span>
+      <span class="badge ${_mgrBalanceBadgeClass(remaining)}" dir="ltr">${remaining} / ${total}</span>
+    </div>`;
+}
+
+function _mgrInitials(name) {
+  return String(name || '?').trim().split(/\s+/).slice(0, 2)
+    .map(w => w[0] || '').join('').toUpperCase();
+}
+
+// Green when there is room left, amber when running low, red when exhausted.
+function _mgrBalanceBadgeClass(remaining) {
+  if (remaining <= 0) return 'badge-absent';
+  if (remaining <= 5) return 'badge-late';
+  return 'badge-present';
+}
+
 async function _handleApprove(leaveId) {
   const card = document.querySelector(`.mgr-leave-card[data-id="${CSS.escape(leaveId)}"]`);
   const btn  = card?.querySelector('.mgr-leave-approve');
@@ -212,6 +294,7 @@ async function _handleApprove(leaveId) {
     card?.remove();
     showToast(t('status.approved'), 'success');
     _checkEmptyLeaveList();
+    _loadTeamLeaves(); // approved days change the balance — refetch to keep it true
   } else {
     showToast(res.message || t('error.server'), 'error');
     if (btn) { btn.disabled = false; btn.textContent = t('action.approve'); }
@@ -229,6 +312,7 @@ async function _handleReject(leaveId) {
     card?.remove();
     showToast(t('status.rejected'), 'warning');
     _checkEmptyLeaveList();
+    _loadTeamLeaves(); // pending days drop out of the balance — refetch
   } else {
     showToast(res.message || t('error.server'), 'error');
     if (btn) { btn.disabled = false; btn.textContent = t('action.reject'); }
@@ -250,7 +334,7 @@ function _checkEmptyLeaveList() {
 // HTML builders
 // ---------------------------------------------------------------------------
 
-function _statCard(value, label, variant) {
+function _mgrStatCard(value, label, variant) {
   return `
     <div class="mgr-stat-card mgr-stat-${_esc(variant)}" role="listitem">
       <span class="mgr-stat-num">${Number(value) || 0}</span>
@@ -279,7 +363,7 @@ function _memberRow(member) {
     </li>`;
 }
 
-function _attRow(r) {
+function _mgrAttRow(r) {
   const checkIn  = r.check_in  ? _fmtTime(r.check_in)  : '—';
   const checkOut = r.check_out ? _fmtTime(r.check_out) : '—';
   const hours    = r.hours_worked
@@ -325,6 +409,7 @@ function _leaveCard(l) {
         <span class="mgr-leave-type">${_esc(leaveType)}</span>
         <span class="mgr-leave-dates">${_esc(startFmt)} — ${_esc(endFmt)}</span>
       </div>
+      ${_leaveBalanceChip(l)}
       ${l.reason
         ? `<p class="mgr-leave-reason">${_esc(l.reason)}</p>`
         : ''}

@@ -57,6 +57,57 @@ async function checkPlatformAuth() {
 }
 
 // ---------------------------------------------------------------------------
+// checkCapability — full pre-flight before showing any biometric prompt
+//
+// Phones fail registration for a handful of distinct reasons, and the browser
+// reports most of them only as a generic NotAllowedError once the prompt has
+// already been dismissed. Probing first lets the UI explain what to fix
+// instead of showing "registration failed".
+//
+// Returns { ok, reasonKey, helpKey } — reasonKey/helpKey are i18n keys.
+// ---------------------------------------------------------------------------
+async function checkCapability() {
+  // GPS and WebAuthn both need a secure context — an http:// or file:// origin
+  // silently disables navigator.credentials.
+  if (!window.isSecureContext) {
+    return { ok: false, reasonKey: 'biometric.insecure_context', helpKey: 'biometric.help_insecure' };
+  }
+
+  if (!checkSupport().supported) {
+    return { ok: false, reasonKey: 'biometric.not_supported', helpKey: 'biometric.help_browser' };
+  }
+
+  // False here means: no fingerprint/face sensor enrolled AND no screen lock
+  // (PIN / pattern / password) set up. Both are user-fixable in phone settings.
+  const hasPlatform = await checkPlatformAuth();
+  if (!hasPlatform) {
+    return { ok: false, reasonKey: 'biometric.no_screen_lock', helpKey: 'biometric.help_screen_lock' };
+  }
+
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Map a WebAuthn DOMException to a bilingual i18n key.
+//
+// Android reports an unavailable sensor, a user cancellation and a prompt
+// timeout all as NotAllowedError, so that key carries the broadest wording
+// plus a pointer to the screen-lock fallback.
+// ---------------------------------------------------------------------------
+function _webauthnErrorKey(err) {
+  switch (err && err.name) {
+    case 'NotAllowedError':   return 'biometric.cancelled';
+    case 'NotSupportedError': return 'biometric.no_sensor';
+    case 'ConstraintError':   return 'biometric.no_screen_lock';
+    case 'SecurityError':     return 'biometric.origin_error';
+    case 'InvalidStateError': return 'biometric.already_on_device';
+    case 'AbortError':        return 'biometric.timeout';
+    case 'UnknownError':      return 'biometric.device_error';
+    default:                  return 'biometric.not_supported';
+  }
+}
+
+// ---------------------------------------------------------------------------
 // isRegistered — credential presence check (synchronous)
 // Returns true when a credential has been registered on this device.
 // A missing credential ID means the registration flow must run first.
@@ -76,6 +127,12 @@ function isRegistered() {
 // Returns { success: true } or { success: false, reason: string }
 // ---------------------------------------------------------------------------
 async function registerFingerprint() {
+  // 0 — capability pre-flight, so an unfixable device says why up front
+  const cap = await checkCapability();
+  if (!cap.ok) {
+    return { success: false, reason: t(cap.reasonKey), helpKey: cap.helpKey };
+  }
+
   // 1 — server challenge
   const challengeRes = await apiWebauthnRegisterChallenge();
   if (challengeRes.status !== 'ok') {
@@ -84,39 +141,61 @@ async function registerFingerprint() {
 
   const user = _currentUser();
 
-  // 2 — OS biometric prompt
+  const publicKey = {
+    challenge: _b64urlToBuf(challengeRes.data.challenge),
+    rp: {
+      id:   window.location.hostname,
+      name: (typeof getConfig === 'function' ? getConfig('company_name') : '') || 'LMP Attendance',
+    },
+    user: {
+      id:          new TextEncoder().encode(user.id || 'user'),
+      name:        user.username || 'user',
+      displayName: user.name || user.username || 'User',
+    },
+    pubKeyCredParams: [
+      { type: 'public-key', alg: -7   }, // ES256
+      { type: 'public-key', alg: -257 }, // RS256
+    ],
+    authenticatorSelection: {
+      authenticatorAttachment: 'platform',
+      userVerification:        'required',
+      // Non-discoverable: the credential ID is stored server-side and replayed
+      // in allowCredentials, so we never need a resident key. Asking for one
+      // routes Android through the passkey/Google-account flow, which is what
+      // fails on phones that are not signed in or have no passkey storage.
+      residentKey:             'discouraged',
+      requireResidentKey:      false,
+    },
+    timeout:     120000, // 2 min — rear/side sensors take longer to find
+    attestation: 'none',
+  };
+
+  // 2 — OS biometric prompt, with one relaxed retry
   let credential;
   try {
-    credential = await navigator.credentials.create({
-      publicKey: {
-        challenge: _b64urlToBuf(challengeRes.data.challenge),
-        rp: {
-          id:   window.location.hostname,
-          name: (typeof getConfig === 'function' ? getConfig('company_name') : '') || 'LMP Attendance',
-        },
-        user: {
-          id:          new TextEncoder().encode(user.id || 'user'),
-          name:        user.username || 'user',
-          displayName: user.name || user.username || 'User',
-        },
-        pubKeyCredParams: [
-          { type: 'public-key', alg: -7   }, // ES256
-          { type: 'public-key', alg: -257 }, // RS256
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: 'platform',
-          userVerification:        'required',
-          residentKey:             'preferred',
-        },
-        timeout:     60000,
-        attestation: 'none',
-      },
-    });
+    credential = await navigator.credentials.create({ publicKey });
   } catch (err) {
-    if (err.name === 'NotAllowedError') {
-      return { success: false, reason: t('biometric.failed') };
+    // Some devices reject the strict platform-only request but succeed when
+    // the attachment constraint is dropped (lets the OS offer screen-lock
+    // credentials on phones whose sensor is not reported as a platform
+    // authenticator). Only worth retrying for capability-shaped failures.
+    const retryable = ['NotSupportedError', 'ConstraintError', 'NotReadableError', 'UnknownError'];
+    if (retryable.includes(err.name)) {
+      try {
+        const fallbackKey = Object.assign({}, publicKey, {
+          authenticatorSelection: {
+            userVerification:   'required',
+            residentKey:        'discouraged',
+            requireResidentKey: false,
+          },
+        });
+        credential = await navigator.credentials.create({ publicKey: fallbackKey });
+      } catch (retryErr) {
+        return { success: false, reason: t(_webauthnErrorKey(retryErr)), errorName: retryErr.name };
+      }
+    } else {
+      return { success: false, reason: t(_webauthnErrorKey(err)), errorName: err.name };
     }
-    return { success: false, reason: t('biometric.not_supported') };
   }
 
   // 3 — send to server
@@ -126,7 +205,11 @@ async function registerFingerprint() {
 
   const completeRes = await apiWebauthnRegisterComplete(credentialId, attestationObj, clientDataJSON);
   if (completeRes.status !== 'ok') {
-    return { success: false, reason: completeRes.message || t('biometric.register_failed') };
+    return {
+      success: false,
+      reason:  completeRes.message || t('biometric.register_failed'),
+      code:    completeRes.code || '',
+    };
   }
 
   // 4 — persist locally
@@ -147,12 +230,18 @@ async function registerFingerprint() {
 async function verifyFingerprint() {
   const storedCredId = localStorage.getItem(_CRED_KEY);
   if (!storedCredId) {
-    return { verified: false, reason: t('biometric.not_registered') };
+    return { verified: false, reason: t('biometric.not_registered'), needsRegistration: true };
   }
 
   // 1 — fresh server challenge
   const challengeRes = await apiWebauthnAuthChallenge();
   if (challengeRes.status !== 'ok') {
+    // Server cleared this employee's credential (HR reset / new phone) — drop
+    // the stale local one so the caller can send them through registration.
+    if (challengeRes.code === 'biometric_not_registered') {
+      clearRegistration();
+      return { verified: false, reason: t('biometric.not_registered'), needsRegistration: true };
+    }
     return { verified: false, reason: challengeRes.message || t('biometric.failed') };
   }
 
@@ -163,19 +252,17 @@ async function verifyFingerprint() {
       publicKey: {
         challenge: _b64urlToBuf(challengeRes.data.challenge),
         allowCredentials: [{
-          type:       'public-key',
-          id:         _b64urlToBuf(storedCredId),
-          transports: ['internal'],
+          type: 'public-key',
+          id:   _b64urlToBuf(storedCredId),
+          // Left unset on purpose: pinning transports to ['internal'] hides the
+          // credential on devices that report their sensor differently.
         }],
         userVerification: 'required',
-        timeout:          60000,
+        timeout:          120000,
       },
     });
   } catch (err) {
-    if (err.name === 'NotAllowedError') {
-      return { verified: false, reason: t('biometric.failed') };
-    }
-    return { verified: false, reason: t('biometric.not_supported') };
+    return { verified: false, reason: t(_webauthnErrorKey(err)), errorName: err.name };
   }
 
   // 3 — send signed assertion to server
@@ -188,6 +275,10 @@ async function verifyFingerprint() {
 
   const verifyRes = await apiWebauthnAuthVerify(signedResponse);
   if (verifyRes.status !== 'ok') {
+    if (verifyRes.code === 'biometric_not_registered') {
+      clearRegistration();
+      return { verified: false, reason: t('biometric.not_registered'), needsRegistration: true };
+    }
     return { verified: false, reason: verifyRes.message || t('biometric.failed') };
   }
 
@@ -219,6 +310,7 @@ function _currentUser() {
 // ---------------------------------------------------------------------------
 window.checkSupport        = checkSupport;
 window.checkPlatformAuth   = checkPlatformAuth;
+window.checkCapability     = checkCapability;
 window.isRegistered        = isRegistered;
 window.registerFingerprint = registerFingerprint;
 window.verifyFingerprint   = verifyFingerprint;
