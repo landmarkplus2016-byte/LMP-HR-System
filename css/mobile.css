@@ -319,6 +319,18 @@
   line-height: var(--lh-snug);
 }
 
+/* Device facts for HR — deliberately plain and copyable, never translated */
+.bio-help-diag {
+  margin-block-start: var(--sp-2);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--c-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+  text-align: start;
+  user-select: all;
+}
+
 .bio-help-footer {
   margin-block-start: var(--sp-3);
   padding-block-start: var(--sp-3);

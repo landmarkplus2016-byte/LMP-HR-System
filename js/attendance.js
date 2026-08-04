@@ -344,6 +344,7 @@ async function _renderRegistrationPrompt(container, user) {
       startBtn.addEventListener('click', () => _renderRegistrationPrompt(container, user));
     }
     _showBiometricHelp(container, cap.helpKey);
+    _showBiometricDiagnostics(container, '');
     return;
   }
 
@@ -373,15 +374,52 @@ async function _renderRegistrationPrompt(container, user) {
     }
 
     // A credential already on file means this account is registered on another
-    // phone — only HR can clear it. Anything else is a device-side problem the
-    // employee can usually fix themselves.
-    _showBiometricHelp(
-      container,
-      res.code === 'biometric_already_registered'
-        ? 'biometric.help_hr_reset'
-        : (res.helpKey || 'biometric.help_screen_lock')
-    );
+    // phone — only HR can clear it. A WebView means the link was opened inside
+    // another app. Anything else is a device-side problem the employee can
+    // usually fix themselves.
+    let helpKey = res.helpKey || 'biometric.help_screen_lock';
+    if (res.code === 'biometric_already_registered') {
+      helpKey = 'biometric.help_hr_reset';
+    } else if (!res.helpKey && typeof isInAppBrowser === 'function' && isInAppBrowser()) {
+      helpKey = 'biometric.help_browser';
+      if (regMsg) regMsg.textContent = t('biometric.in_app_browser');
+    }
+    _showBiometricHelp(container, helpKey);
+    _showBiometricDiagnostics(container, res.errorName || res.code || '');
   });
+}
+
+// ---------------------------------------------------------------------------
+// Diagnostics line — what this phone actually reports. Without it a failure on
+// a device we cannot hold is unresolvable, so it is appended to the help panel
+// for the employee to read out or screenshot for HR.
+// ---------------------------------------------------------------------------
+async function _showBiometricDiagnostics(container, errorName) {
+  const help = container.querySelector('#bio-help');
+  if (!help || typeof describeEnvironment !== 'function') return;
+
+  const env = await describeEnvironment();
+  if (!container.querySelector('#bio-help')) return; // navigated away
+
+  const parts = [
+    errorName ? `err:${errorName}` : '',
+    `android:${env.android}`,
+    `chrome:${env.chrome}`,
+    `api:${env.webauthn}`,
+    `sensor:${env.sensor}`,
+    `https:${env.secure}`,
+    `webview:${env.webview}`,
+    `pwa:${env.standalone}`,
+  ].filter(Boolean);
+
+  const line = document.createElement('p');
+  line.className = 'bio-help-diag';
+  line.setAttribute('dir', 'ltr');
+  line.textContent = parts.join(' · ');
+
+  help.querySelector('.bio-help-diag')?.remove();
+  help.appendChild(line);
+  help.hidden = false;
 }
 
 // ---------------------------------------------------------------------------

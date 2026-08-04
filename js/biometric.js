@@ -77,14 +77,58 @@ async function checkCapability() {
     return { ok: false, reasonKey: 'biometric.not_supported', helpKey: 'biometric.help_browser' };
   }
 
+
   // False here means: no fingerprint/face sensor enrolled AND no screen lock
   // (PIN / pattern / password) set up. Both are user-fixable in phone settings.
+  //
+  // An in-app browser (a link opened straight from WhatsApp or Facebook) is a
+  // WebView, where this call usually returns false even though the phone's own
+  // fingerprint unlock works — hence the different explanation.
   const hasPlatform = await checkPlatformAuth();
   if (!hasPlatform) {
-    return { ok: false, reasonKey: 'biometric.no_screen_lock', helpKey: 'biometric.help_screen_lock' };
+    return isInAppBrowser()
+      ? { ok: false, reasonKey: 'biometric.in_app_browser', helpKey: 'biometric.help_browser' }
+      : { ok: false, reasonKey: 'biometric.no_screen_lock',  helpKey: 'biometric.help_screen_lock' };
   }
 
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// isInAppBrowser — true when the page is running inside an embedded WebView
+// rather than a real browser. Android WebView marks itself with "; wv)", and
+// the big social apps add their own tokens.
+// ---------------------------------------------------------------------------
+function isInAppBrowser() {
+  const ua = String(navigator.userAgent || '');
+  if (/;\s*wv\)/i.test(ua)) return true;
+  return /FBAN|FBAV|FB_IAB|Instagram|Line\/|MicroMessenger|Twitter|Snapchat|TikTok/i.test(ua);
+}
+
+// ---------------------------------------------------------------------------
+// describeEnvironment — compact, non-secret facts about this device, shown on
+// the failure screen so HR can report exactly what a phone is doing.
+// ---------------------------------------------------------------------------
+async function describeEnvironment() {
+  const ua = String(navigator.userAgent || '');
+  const pick = re => (ua.match(re) || [, ''])[1] || '?';
+
+  let platformAuth = 'no';
+  try {
+    platformAuth = (await checkPlatformAuth()) ? 'yes' : 'no';
+  } catch (_) {
+    platformAuth = 'err';
+  }
+
+  return {
+    android:   pick(/Android\s+([\d.]+)/),
+    chrome:    pick(/Chrome\/([\d.]+)/),
+    webauthn:  checkSupport().supported ? 'yes' : 'no',
+    sensor:    platformAuth,
+    secure:    window.isSecureContext ? 'yes' : 'no',
+    webview:   isInAppBrowser() ? 'yes' : 'no',
+    standalone: window.matchMedia('(display-mode: standalone)').matches ? 'yes' : 'no',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -311,6 +355,8 @@ function _currentUser() {
 window.checkSupport        = checkSupport;
 window.checkPlatformAuth   = checkPlatformAuth;
 window.checkCapability     = checkCapability;
+window.isInAppBrowser      = isInAppBrowser;
+window.describeEnvironment = describeEnvironment;
 window.isRegistered        = isRegistered;
 window.registerFingerprint = registerFingerprint;
 window.verifyFingerprint   = verifyFingerprint;

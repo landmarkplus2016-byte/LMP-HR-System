@@ -489,12 +489,15 @@ function _fmtTime(hhMm) {
 // Format a stored YYYY-MM-DD date string for display using utils.js formatDate()
 function _fmtDate(isoDate) {
   if (!isoDate) return '';
+  // Sheets dates arrive either as "YYYY-MM-DD" or as a full ISO timestamp —
+  // keep the date part only so both parse.
+  const dateOnly = (String(isoDate).match(/^\d{4}-\d{2}-\d{2}/) || [String(isoDate)])[0];
   try {
     if (typeof formatDate === 'function') {
-      return formatDate(new Date(isoDate + 'T00:00:00'));
+      return formatDate(new Date(dateOnly + 'T00:00:00'));
     }
   } catch (_) { /* fall through */ }
-  return String(isoDate);
+  return dateOnly;
 }
 
 // "Last updated: HH:MM" line shown next to the section header

@@ -147,8 +147,9 @@
     "remaining": "Remaining",
     "entitlement": "Annual entitlement",
     "pending_days": "Pending days",
-    "balances_title": "Annual leave balances",
-    "balances_hint": "Approved annual leave days used this year"
+    "balances_title": "Annual Leave Balances",
+    "balances_hint": "Approved annual leave days used this year",
+    "balances_unavailable": "Leave balances are not available yet — the Apps Script Web App needs to be redeployed with the latest version."
   },
 
   "team": {
@@ -386,10 +387,12 @@
       "s2": "Add the app to your home screen from that link.",
       "s3": "Open it again from the home screen icon and tap Retry."
     },
+    "in_app_browser": "The app is open inside another app's browser (WhatsApp, Facebook…), where fingerprint is blocked. Open it in Chrome instead.",
     "help_browser": {
-      "s1": "Open the app in Chrome (Android) or Safari (iPhone).",
-      "s2": "Update the browser to the latest version from the app store.",
-      "s3": "Open the app again and tap Retry."
+      "s1": "Tap the ⋮ menu at the top of this page and choose \"Open in browser\" / \"Open in Chrome\".",
+      "s2": "In Chrome, tap ⋮ → Add to Home screen, and open the app from that icon from now on.",
+      "s3": "Make sure Chrome and Google Play services are updated from the Play Store.",
+      "s4": "Open the app again and tap Retry."
     },
     "help_hr_reset": {
       "s1": "Your fingerprint is registered on another phone.",

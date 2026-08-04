@@ -3126,12 +3126,14 @@ async function _deleteShift(shiftId) {
 let _leavesAllRecords   = [];
 let _leavesStatusFilter = '';
 let _leaveBalances      = [];
+let _balancesSupported  = true;
 
 async function renderLeaveRequests(container) {
   _cancelLiveTimer();
   _leavesAllRecords   = [];
   _leavesStatusFilter = '';
   _leaveBalances      = [];
+  _balancesSupported  = true;
 
   container.innerHTML = `
     <div class="view-content">
@@ -3218,6 +3220,9 @@ async function renderLeaveRequests(container) {
 
   _leavesAllRecords = Array.isArray(res.data?.requests) ? res.data.requests : [];
   _leaveBalances    = Array.isArray(res.data?.balances) ? res.data.balances : [];
+  // A response with no `balances` key at all means the Apps Script Web App is
+  // still running a version older than the balance feature.
+  _balancesSupported = Array.isArray(res.data?.balances);
   _renderLeaveTable('');
   _renderBalanceTable('');
 
@@ -3304,8 +3309,8 @@ function _hrLeaveRow(l) {
       <td style="font-weight:var(--fw-medium)">${_esc(l.employee_name || l.employee_id || '')}</td>
       <td>${_esc(l.department || '')}</td>
       <td>${_esc(typeLabel)}</td>
-      <td dir="ltr">${_esc(_fmtDate(l.start_date))}</td>
-      <td dir="ltr">${_esc(_fmtDate(l.end_date))}</td>
+      <td dir="ltr">${_esc(_fmtDate(_leaveDateOnly(l.start_date)))}</td>
+      <td dir="ltr">${_esc(_fmtDate(_leaveDateOnly(l.end_date)))}</td>
       <td style="text-align:center" dir="ltr">${days}</td>
       <td style="text-align:center">${_leaveBalanceCell(l)}</td>
       <td class="leave-reason-cell">${_esc(l.reason || '—')}</td>
@@ -3323,10 +3328,19 @@ function _hrLeaveRow(l) {
     </tr>`;
 }
 
+// Sheets date cells reach us either as "YYYY-MM-DD" or, when the server has
+// not normalised them, as a full ISO timestamp. Keep only the date part so
+// every caller works with the same shape.
+function _leaveDateOnly(val) {
+  const s = String(val || '').trim();
+  const m = s.match(/^\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] : s;
+}
+
 function _leaveDaysCount(startDate, endDate) {
   try {
-    const s = new Date(String(startDate || '') + 'T00:00:00Z');
-    const e = new Date(String(endDate   || '') + 'T00:00:00Z');
+    const s = new Date(_leaveDateOnly(startDate) + 'T00:00:00Z');
+    const e = new Date(_leaveDateOnly(endDate)   + 'T00:00:00Z');
     if (isNaN(s.getTime()) || isNaN(e.getTime())) return '—';
     return Math.max(0, Math.round((e - s) / 86400000) + 1);
   } catch (_) { return '—'; }
@@ -3365,7 +3379,7 @@ function _recomputeBalanceFor(employeeId) {
   _leavesAllRecords.forEach(function(l) {
     if (String(l.employee_id) !== String(employeeId)) return;
     if (String(l.leave_type || '').toLowerCase() !== 'annual') return;
-    if (!String(l.start_date || '').startsWith(year)) return;
+    if (!_leaveDateOnly(l.start_date).startsWith(year)) return;
 
     const days = Number(_leaveDaysCount(l.start_date, l.end_date));
     if (isNaN(days)) return;
@@ -3405,7 +3419,10 @@ function _renderBalanceTable(query) {
   if (countEl) countEl.textContent = rows.length;
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">${t('placeholder.no_data')}</td></tr>`;
+    const emptyMsg = _balancesSupported
+      ? t('placeholder.no_data')
+      : t('leave.balances_unavailable');
+    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">${_esc(emptyMsg)}</td></tr>`;
     return;
   }
 
