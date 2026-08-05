@@ -41,8 +41,12 @@ function getReportData(payload) {
   const dateTo      = year + '-' + mm + '-' + String(daysInMonth).padStart(2, '0');
 
   // ── Employees ─────────────────────────────────────────────────────────────
+  // Attending roles only — HR, CEO and MD never check in, so including them
+  // would add a row of blanks and false absences to every monthly report
   var employees = sheetToObjects(getSheet('Employees'))
-    .filter(function(e) { return String(e.active || '').toUpperCase() !== 'FALSE'; });
+    .filter(function(e) {
+      return String(e.active || '').toUpperCase() !== 'FALSE' && isAttendingRole(e.role);
+    });
 
   if (deptId) {
     employees = employees.filter(function(e) {

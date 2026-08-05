@@ -393,6 +393,11 @@ async function apiGetTeamEmployees() {
   return post('get_team_employees', {});
 }
 
+// CEO / MD — today's company status grouped by manager
+async function apiGetOrgStatus() {
+  return post('get_org_status', {});
+}
+
 async function apiGetAllEmployees() {
   return post('get_all_employees', {});
 }

@@ -64,10 +64,13 @@ function getTeamStatus(payload) {
   // Build leave lookup: employee_id → approved leave covering today
   const leaveMap = {};
   sheetToObjects(getSheet('Leaves')).forEach(l => {
+    // Normalise first — Sheets hands date-formatted cells back as Date objects,
+    // and String(Date) ("Mon Aug 05 2026…") never compares correctly against a
+    // YYYY-MM-DD string, which silently hid employees who were on leave
     if (
       String(l.status) === 'approved' &&
-      String(l.start_date) <= today &&
-      String(l.end_date)   >= today
+      _normaliseLeaveDate(l.start_date) <= today &&
+      _normaliseLeaveDate(l.end_date)   >= today
     ) {
       leaveMap[String(l.employee_id)] = l;
     }
@@ -255,7 +258,7 @@ function addEmployee(payload) {
     return error('Temporary password must be at least 4 characters', 'كلمة المرور المؤقتة يجب أن تكون ٤ أحرف على الأقل');
   }
 
-  const validRoles = ['employee', 'manager', 'hr'];
+  const validRoles = ['employee', 'manager', 'hr', 'ceo', 'md'];
   if (!validRoles.includes(role)) {
     return error('Invalid role', 'الدور الوظيفي غير صالح');
   }
@@ -321,7 +324,7 @@ function updateEmployee(payload) {
 
   // Validate role if being changed
   if (updates.role !== undefined) {
-    const validRoles = ['employee', 'manager', 'hr'];
+    const validRoles = ['employee', 'manager', 'hr', 'ceo', 'md'];
     if (!validRoles.includes(updates.role)) {
       return error('Invalid role', 'الدور الوظيفي غير صالح');
     }
@@ -418,7 +421,11 @@ function reactivateEmployee(payload) {
 // =============================================================================
 function _getTeamMembers(employees, callingEmployee, role) {
   if (role === 'hr') {
-    return employees.filter(e => String(e.active).toUpperCase() === 'TRUE');
+    // Attending roles only — HR, CEO and MD never check in, so counting them
+    // here would show them as Absent every day in live status and the dashboard
+    return employees.filter(e =>
+      String(e.active).toUpperCase() === 'TRUE' && isAttendingRole(e.role)
+    );
   }
   // Manager sees their direct reports plus themselves — a manager records
   // attendance like anyone else, so their own row belongs in team status and
@@ -429,7 +436,144 @@ function _getTeamMembers(employees, callingEmployee, role) {
   // keeps a manager out of their own approval queue.
   return employees.filter(e =>
     String(e.active).toUpperCase() === 'TRUE' &&
+    isAttendingRole(e.role) &&
     (String(e.manager_id) === String(callingEmployee.id) ||
      String(e.id)         === String(callingEmployee.id))
   );
+}
+
+// =============================================================================
+// getOrgStatus — CEO / MD only
+//
+// The executive view: today's company-wide status, grouped by manager so each
+// manager appears with their own team beneath them.
+//
+// Grouping is by the manager_id column — an employee with a blank or unknown
+// manager_id lands in the `unassigned` group rather than being dropped, so a
+// gap in the org chart is visible on screen instead of silently hiding people.
+//
+// A manager appears twice by design: once as the head of their own group, and
+// once as a member inside their own manager's group. Grouping is one level
+// deep — no nesting.
+// =============================================================================
+function getOrgStatus(payload) {
+  const auth = validateSession(payload);
+  if (!auth.valid) return auth.error;
+
+  if (!isExecRole(auth.employee.role)) {
+    return error('Access denied', 'غير مخوّل للوصول');
+  }
+
+  const employees = sheetToObjects(getSheet('Employees'));
+
+  // The attending workforce — everyone who is expected to check in
+  const workforce = employees.filter(e =>
+    String(e.active).toUpperCase() === 'TRUE' && isAttendingRole(e.role)
+  );
+
+  const today = formatDate(new Date());
+
+  // Today's attendance record per employee
+  const attMap = {};
+  sheetToObjects(getSheet('Attendance'))
+    .filter(r => formatDate(new Date(r.date)) === today)
+    .forEach(r => { attMap[String(r.employee_id)] = r; });
+
+  // Approved leave covering today, per employee
+  const leaveMap = {};
+  sheetToObjects(getSheet('Leaves')).forEach(l => {
+    if (
+      String(l.status) === 'approved' &&
+      _normaliseLeaveDate(l.start_date) <= today &&
+      _normaliseLeaveDate(l.end_date)   >= today
+    ) {
+      leaveMap[String(l.employee_id)] = l;
+    }
+  });
+
+  const members = workforce.map(emp => _orgMemberRow(emp, attMap, leaveMap));
+
+  // id → member, so a manager's own status can be shown on their group header
+  const byId = {};
+  members.forEach(m => { byId[m.id] = m; });
+
+  // Bucket every member under their manager_id
+  const buckets    = {};
+  const unassigned = [];
+  members.forEach(m => {
+    const mgrId = String(m.manager_id || '').trim();
+    if (!mgrId || !byId[mgrId]) {
+      unassigned.push(m);
+      return;
+    }
+    if (!buckets[mgrId]) buckets[mgrId] = [];
+    buckets[mgrId].push(m);
+  });
+
+  const groups = Object.keys(buckets).map(mgrId => {
+    const head = byId[mgrId];
+    // A manager heads their own group, so exclude their row from the member
+    // list to avoid showing them twice within the same card
+    const teamMembers = buckets[mgrId].filter(m => m.id !== mgrId);
+    return {
+      manager_id:     mgrId,
+      manager_name:   head.name,
+      department:     head.department,
+      manager_status: head.status,
+      manager_check_in: head.check_in,
+      members:        teamMembers.sort((a, b) => a.name.localeCompare(b.name)),
+      summary:        _orgSummary(teamMembers)
+    };
+  }).sort((a, b) => String(a.manager_name).localeCompare(String(b.manager_name)));
+
+  return ok({
+    date:    today,
+    summary: _orgSummary(members),          // company-wide, counts everyone once
+    groups:  groups,
+    unassigned: {
+      members: unassigned.sort((a, b) => a.name.localeCompare(b.name)),
+      summary: _orgSummary(unassigned)
+    }
+  });
+}
+
+// Private: today's status for one employee, in the shape the org screen wants
+function _orgMemberRow(emp, attMap, leaveMap) {
+  const id  = String(emp.id);
+  const rec = attMap[id];
+  const lv  = leaveMap[id];
+
+  let status    = 'absent';
+  let check_in  = '';
+  let check_out = '';
+
+  if (lv) {
+    status = 'on_leave';
+  } else if (rec) {
+    status    = String(rec.status    || 'present').toLowerCase();
+    check_in  = String(rec.check_in  || '');
+    check_out = String(rec.check_out || '');
+  }
+
+  return {
+    id,
+    name:       String(emp.name       || emp.username || ''),
+    department: String(emp.department || ''),
+    role:       String(emp.role       || ''),
+    manager_id: String(emp.manager_id || ''),
+    status,
+    check_in,
+    check_out
+  };
+}
+
+// Private: count statuses across a list of org member rows
+function _orgSummary(rows) {
+  return {
+    present:  rows.filter(m => m.status === 'present').length,
+    late:     rows.filter(m => m.status === 'late').length,
+    absent:   rows.filter(m => m.status === 'absent').length,
+    on_leave: rows.filter(m => m.status === 'on_leave').length,
+    total:    rows.length
+  };
 }

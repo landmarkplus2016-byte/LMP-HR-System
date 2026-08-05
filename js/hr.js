@@ -1563,6 +1563,10 @@ function _empStatusBadge(active) {
 
 function _empRoleBadge(role) {
   const r = String(role || '').toLowerCase();
+  // Solid navy — the brand sidebar colour, deliberately heavier than the tinted
+  // role badges so the two executive accounts stand out in the employee table
+  if (r === 'ceo' || r === 'md')
+    return `<span class="badge" style="background:var(--c-navy);color:var(--c-text-inverse)">${t(r === 'ceo' ? 'employees.role_ceo' : 'employees.role_md')}</span>`;
   if (r === 'hr')
     return `<span class="badge" style="background:var(--c-primary-dim);color:var(--c-primary)">${t('employees.role_hr')}</span>`;
   if (r === 'manager')
@@ -1704,6 +1708,8 @@ function _renderEmpEditForm(emp) {
           <option value="employee" ${emp.role === 'employee' ? 'selected' : ''}>${t('employees.role_employee')}</option>
           <option value="manager"  ${emp.role === 'manager'  ? 'selected' : ''}>${t('employees.role_manager')}</option>
           <option value="hr"       ${emp.role === 'hr'       ? 'selected' : ''}>${t('employees.role_hr')}</option>
+          <option value="ceo"      ${emp.role === 'ceo'      ? 'selected' : ''}>${t('employees.role_ceo')}</option>
+          <option value="md"       ${emp.role === 'md'       ? 'selected' : ''}>${t('employees.role_md')}</option>
         </select>
       </div>
       <div class="form-group">
@@ -1862,6 +1868,8 @@ function _renderEmpAddForm() {
           <option value="employee">${t('employees.role_employee')}</option>
           <option value="manager">${t('employees.role_manager')}</option>
           <option value="hr">${t('employees.role_hr')}</option>
+          <option value="ceo">${t('employees.role_ceo')}</option>
+          <option value="md">${t('employees.role_md')}</option>
         </select>
       </div>
       <div class="form-group">

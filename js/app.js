@@ -66,6 +66,14 @@ const NAV_ITEMS = {
     { hash: 'history',         icon: Icons.history,   labelKey: 'nav.history'       },
     { hash: 'leave',           icon: Icons.leave,     labelKey: 'nav.leave'         },
   ],
+  // CEO and Managing Director share one screen and one permission group. They
+  // do not check in, so there is no home/check-in item — same as HR.
+  ceo: [
+    { hash: 'org', icon: Icons.team, labelKey: 'nav.org' },
+  ],
+  md: [
+    { hash: 'org', icon: Icons.team, labelKey: 'nav.org' },
+  ],
   hr: [
     { hash: 'dashboard',      icon: Icons.dashboard, labelKey: 'nav.dashboard'     },
     { hash: 'live-status',    icon: Icons.live,      labelKey: 'nav.live_status'   },
@@ -89,6 +97,7 @@ const ROUTES = {
   'history':          ['employee', 'manager'],
   'leave':            ['employee', 'manager'],
   'leave-balance':    ['employee', 'manager'],
+  'org':              ['ceo', 'md'],
   'team':             ['manager', 'hr'],
   'team-attendance':  ['manager', 'hr'],
   'team-leaves':      ['manager', 'hr'],
@@ -115,6 +124,7 @@ const VIEW_RENDER = {
   'history':          'renderAttendanceHistory',
   'leave':            'renderLeaveForm',
   'leave-balance':    'renderLeaveBalance',
+  'org':              'renderOrgStatus',
   'team':             'renderTeamStatus',
   'team-attendance':  'renderTeamAttendance',
   'team-leaves':      'renderTeamLeaves',
@@ -555,8 +565,9 @@ window.showToast = showToast;
 // HELPERS
 // ---------------------------------------------------------------------------
 function getHomeHash(role) {
-  if (role === 'hr')      return 'dashboard';
-  if (role === 'manager') return 'team';
+  if (role === 'hr')                     return 'dashboard';
+  if (role === 'ceo' || role === 'md')   return 'org';
+  if (role === 'manager')                return 'team';
   return 'home';
 }
 

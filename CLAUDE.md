@@ -31,14 +31,33 @@ A GPS-verified, biometric employee attendance PWA for Landmark Plus.
 
 ---
 
-## Four User Roles — Quick Reference
+## Five User Roles — Quick Reference
 
-| Role | Device | Navigation | Key permissions |
+| Role value | Device | Navigation | Key permissions |
 |---|---|---|---|
-| Employee | Mobile | Bottom tab bar | Check in/out, own attendance history, leave requests |
-| Manager | Mobile or desktop | Bottom tabs / sidebar | Team live status, leave approvals, team attendance records |
-| HR Manager | Desktop (laptop) | Left sidebar — 11 screens | Full company dashboard, employee management, all admin screens, reports |
+| `employee` | Mobile | Bottom tab bar | Check in/out, own attendance history, leave requests |
+| `manager` | Mobile or desktop | Bottom tabs / sidebar | Team live status, leave approvals, team attendance records — **plus their own check-in and leave requests**, same as an employee |
+| `hr` | Desktop (laptop) | Left sidebar — 11 screens | Full company dashboard, employee management, all admin screens, reports |
+| `ceo` | Desktop | Single screen | Read-only company status grouped by manager |
+| `md` | Desktop | Single screen | Identical to `ceo` — same permission group, separate title |
 | Developer (you) | — | Google Sheet + Apps Script | Only person with Sheet access — everyone else uses the PWA |
+
+### Role rules — declared once, in `Utils.gs`
+
+Never spell out role comparisons inline. Two helpers own the rules:
+
+- `isExecRole(role)` — `ceo` or `md`
+- `isAttendingRole(role)` — everyone except `hr`, `ceo`, `md`
+
+**CEO and MD are read-only by construction.** Every handler that writes keeps a
+literal `role !== 'hr'` check, so no amount of frontend change can give an
+executive account write access. When opening a **read** endpoint to executives
+later, widen its gate with `isExecRole()` — never a write endpoint.
+
+**HR, CEO and MD do not check in.** `isAttendingRole()` keeps them out of team
+status, live status, dashboard counts and every report row — otherwise they
+appear as Absent every single day and inflate the absence figures. Anything that
+counts or reports on the workforce must filter through it.
 
 > ⚠️ Nobody except the developer ever opens the Google Sheet. HR manages everything through the PWA desktop app. The Sheet is a locked silent database.
 
@@ -67,6 +86,7 @@ lmp-attendance/
 │   ├── offline.js              # IndexedDB offline queue, background sync retry
 │   ├── employee.js             # Employee-only views: history, leave request form, leave balance
 │   ├── manager.js              # Manager views: team live status, leave approvals, team records
+│   ├── exec.js                 # CEO / MD view: company status grouped by manager — read-only
 │   ├── hr.js                   # HR desktop views: dashboard, all admin screens, report generation
 │   ├── report.js               # SheetJS client-side Excel report generation
 │   ├── config.js               # Loads app config from Apps Script on startup, caches it
@@ -348,6 +368,7 @@ All calls are POST to the Web App URL. Every call (except `login` and `get_confi
 | `get_my_attendance` | Employee | Own last 30 days only |
 | `submit_leave` | Employee | Write leave request row |
 | `get_my_leaves` | Employee | Own leave requests + balance |
+| `get_org_status` | CEO/MD | Today's company status grouped by manager — the only endpoint these roles call |
 | `get_team_status` | Manager | Today's status for all employees under this manager |
 | `get_team_attendance` | Manager | Team attendance, filterable by date |
 | `get_team_leaves` | Manager | Pending leave requests for team |

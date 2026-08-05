@@ -42,6 +42,7 @@
     "history": "My Records",
     "leave": "Request Leave",
     "team": "My Team",
+    "org": "Company Status",
     "signout": "Sign Out",
     "toggle_language": "Toggle language",
     "signed_in_as": "Signed in as"
@@ -50,7 +51,20 @@
   "role": {
     "employee": "Employee",
     "manager": "Manager",
-    "hr": "HR Manager"
+    "hr": "HR Manager",
+    "ceo": "CEO",
+    "md": "Managing Director"
+  },
+
+  "exec": {
+    "org_title": "Company Status",
+    "company_today": "Company status today",
+    "by_manager": "By manager",
+    "updated": "Updated",
+    "unassigned": "No manager assigned",
+    "unassigned_hint": "Not listed under any manager",
+    "no_department": "No department",
+    "no_data": "No employee data to show"
   },
 
   "loading": {
@@ -190,6 +204,8 @@
     "role_employee": "Employee",
     "role_manager": "Manager",
     "role_hr": "HR Manager",
+    "role_ceo": "CEO",
+    "role_md": "Managing Director",
     "status": "Status",
     "active": "Active",
     "inactive": "Inactive",

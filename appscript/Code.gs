@@ -85,6 +85,7 @@ function route(action, payload) {
     case 'get_team_status':              return getTeamStatus(payload);
     case 'get_team_attendance':          return getTeamAttendance(payload);
     case 'get_team_employees':           return getTeamEmployees(payload);
+    case 'get_org_status':               return getOrgStatus(payload);
     case 'get_all_employees':            return getAllEmployees(payload);
     case 'add_employee':                 return addEmployee(payload);
     case 'update_employee':              return updateEmployee(payload);

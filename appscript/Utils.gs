@@ -108,6 +108,33 @@ function generateId(prefix) {
 }
 
 // ---------------------------------------------------------------------------
+// Roles
+// ---------------------------------------------------------------------------
+//
+// Five role values live in the Employees tab: employee | manager | hr | ceo | md
+//
+// These helpers exist so role rules are declared once instead of being spelled
+// out at each handler. Handlers that WRITE keep their literal
+// `role !== 'hr'` check — that is what keeps the executive roles read-only.
+
+// Executive roles — company-wide read access, no write access anywhere
+function isExecRole(role) {
+  const r = String(role || '').toLowerCase();
+  return r === 'ceo' || r === 'md';
+}
+
+// Does this role record attendance at all?
+//
+// HR, CEO and MD do not check in, so they must be left out of workforce counts,
+// live status and report rows — otherwise they appear as Absent every single
+// day and inflate the absence figures. They are still full Employees rows with
+// logins; they simply are not part of the attending workforce.
+function isAttendingRole(role) {
+  const r = String(role || '').toLowerCase();
+  return r !== 'hr' && !isExecRole(r);
+}
+
+// ---------------------------------------------------------------------------
 // GPS
 // ---------------------------------------------------------------------------
 
