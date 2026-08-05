@@ -37,7 +37,7 @@ A GPS-verified, biometric employee attendance PWA for Landmark Plus.
 |---|---|---|---|
 | `employee` | Mobile | Bottom tab bar | Check in/out, own attendance history, leave requests |
 | `manager` | Mobile or desktop | Bottom tabs / sidebar | Team live status, leave approvals, team attendance records — **plus their own check-in and leave requests**, same as an employee |
-| `hr` | Desktop (laptop) | Left sidebar — 11 screens | Full company dashboard, employee management, all admin screens, reports |
+| `hr` | Desktop (laptop) | Left sidebar — 12 screens | Full company dashboard, employee management, all admin screens, reports |
 | `ceo` | Desktop | Single screen | Read-only company status grouped by manager |
 | `md` | Desktop | Single screen | Identical to `ceo` — same permission group, separate title |
 | Developer (you) | — | Google Sheet + Apps Script | Only person with Sheet access — everyone else uses the PWA |
@@ -112,6 +112,7 @@ lmp-attendance/
 │   ├── Locations.gs            # getLocations(), addLocation(), updateLocation(), toggleLocation()
 │   ├── Admin.gs                # Shifts, Departments, Holidays, Config CRUD
 │   ├── Report.gs               # getReportData() — structured data for SheetJS export
+│   ├── Integrity.gs            # getIntegrityReport() — retrospective GPS spoofing analysis, read-only
 │   ├── Maintenance.gs          # cleanExpiredSessions(), archiveAttendance() — scheduled triggers
 │   └── Utils.gs                # haversine(), generateId(), hashPassword(), verifyPassword(), formatDate()
 │
@@ -261,7 +262,7 @@ Employee taps "Check In"
 
 **Scope — applies to EVERY part of the app without exception:**
 - Employee mobile app — all screens
-- HR desktop app — all 11 screens including admin panels, forms, tables, and map labels
+- HR desktop app — all 12 screens including admin panels, forms, tables, and map labels
 - Manager views — both mobile and desktop
 - Error messages — every error returned by api.js or Apps Script
 - System notifications — sync indicators, GPS status, fingerprint prompts, offline banners, update banner
@@ -321,6 +322,45 @@ gps.*, biometric.*, sync.*, offline.*, update.*, date.*, time.*
 - Columns: Employee Name, Department, Day 1…Day 31 (P/A/L/Leave/Holiday/—), Total Present, Total Absent, Total Late, Total Hours Worked, Leave Days Used
 - One row per employee — downloaded instantly to HR's laptop
 
+### GPS Integrity Review (`js/hr.js` → `renderIntegrity` + `Integrity.gs`)
+
+Android tags every location fix with an `isFromMockProvider()` flag, but only
+native apps can read it — the browser Geolocation API strips it before the PWA
+sees the coordinates. **A web app can therefore never prove a location was
+faked.** What it can do is find patterns in already-stored coordinates that a
+real phone does not produce.
+
+`get_integrity_report` scans the Attendance tab over a date range (default 90
+days) and scores each employee on five signals:
+
+| Signal | Weight | Why it is suspicious |
+|---|---|---|
+| `exact_repeat` | 40 | Identical coordinate to 6dp on ≥3 separate days — real GPS jitters 5–30m between fixes even when stationary |
+| `zero_jitter` | 30 | Whole history fits inside a 3m radius — narrower than walking from the gate to a desk |
+| `pinpoint_centre` | 25 | ≥3 fixes within 2m of a Locations-tab centre point — the signature of a coordinate copied off a map |
+| `constant_accuracy` | 20 | Same accuracy value on ≥4 days — accuracy tracks satellite count and sky view, which change daily |
+| `device_mismatch` | 10 | Corroborating only; a reinstall or shared phone trips it honestly |
+
+Scores cap at 100. Level: `high` ≥ 60, `medium` ≥ 30, `low` > 0. Employees with
+fewer than 4 coordinate-bearing check-ins are skipped rather than guessed at,
+and rows from `add_manual_attendance` are excluded because they carry no
+device reading at all.
+
+The response also returns `baseline_spread_m` — the median scatter across the
+whole workforce. **Always show an individual's scatter against this baseline**;
+"0.4m" is meaningless until you know everyone else sits around 20m on the same
+phones and the same building.
+
+**Rules for this feature:**
+- `Integrity.gs` is **read-only**. It never writes to Attendance, never blocks a
+  check-in, and must never gain a write path — enforcement decisions belong to
+  HR after investigating, not to a heuristic
+- Every signal is circumstantial. The screen's disclaimer is load-bearing, not
+  decoration — never redesign it away or let the UI read as a verdict
+- Signals cross the wire as `{ code, weight, params }`; all display text is
+  resolved through `t('integrity.sig_*')` so no user-visible string lives in
+  Apps Script
+
 ---
 
 ## Google Sheets Tab Reference
@@ -378,6 +418,7 @@ All calls are POST to the Web App URL. Every call (except `login` and `get_confi
 | `correct_attendance` | HR | Edit record → write original to AttendanceLog → update Attendance |
 | `add_manual_attendance` | HR | Insert manual record with required HR note |
 | `get_flagged_records` | HR | Records where device_match = FALSE |
+| `get_integrity_report` | HR | Ranks employees whose stored check-in coordinates are not physically plausible — read-only, blocks nothing |
 | `get_all_employees` | HR | Full employee list including inactive |
 | `get_team_employees` | Manager | Employees under calling manager |
 | `add_employee` | HR | Validate unique username → append to Employees tab |
@@ -462,6 +503,6 @@ Full bilingual Arabic/English in all views → `css/rtl.css` → UI polish acros
 - Never hardcode any visible text string in HTML or JS — everything goes through `t()` from `i18n.js`
 - Never show raw technical error strings — always route through bilingual error messages
 - Never format dates or times without going through `utils.js` `formatDate()` / `formatTime()` — they handle language switching
-- Never assume the app is mobile-only when applying bilingual — HR desktop must be fully bilingual in all 11 screens
+- Never assume the app is mobile-only when applying bilingual — HR desktop must be fully bilingual in all 12 screens
 - Never ignore the `force_password_change` flag — always enforce password change before allowing access
 - Never invent a visual style — all UI must be built to match `design/LMP_Attendance_Screens_v3.html`

@@ -14,7 +14,7 @@
 
 'use strict';
 
-const CACHE_VERSION = 'lmp-v1';
+const CACHE_VERSION = 'lmp-v2';
 
 // ---------------------------------------------------------------------------
 // Derive the scope (handles both '/' in dev and '/sub-path/' on GitHub Pages)

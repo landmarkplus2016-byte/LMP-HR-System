@@ -3494,3 +3494,274 @@ async function _hrRejectLeave(leaveId) {
     if (btn) { btn.disabled = false; btn.textContent = t('action.reject'); }
   }
 }
+
+// =============================================================================
+// GPS INTEGRITY SCREEN
+// renderIntegrity — read-only review of coordinate patterns in stored check-ins
+//
+// Reads get_integrity_report and does nothing else. Nothing on this screen
+// edits, blocks or deletes anything: it exists so HR can see which check-in
+// histories are not physically plausible and go look into them.
+//
+// The disclaimer at the top is not decoration. Every signal here is
+// circumstantial and the screen must never read as a verdict.
+// =============================================================================
+
+// Maps each signal's server-side params onto the {n}/{m}/{loc} placeholders
+// used by the locale strings, so Integrity.gs stays free of display text.
+const _INT_SIG_PARAMS = {
+  exact_repeat:      function(p) { return { n: p.days }; },
+  zero_jitter:       function(p) { return { n: p.records, m: p.spread }; },
+  pinpoint_centre:   function(p) { return { n: p.hits,    loc: p.location }; },
+  constant_accuracy: function(p) { return { n: p.days,    m: p.accuracy }; },
+  device_mismatch:   function(p) { return { n: p.count }; },
+};
+
+const _INT_LEVEL_BADGE = {
+  high:   'badge-absent',
+  medium: 'badge-late',
+  low:    'badge-pending',
+};
+
+// Storage-format date for any Date — the date inputs and Integrity.gs both
+// speak YYYY-MM-DD, unlike utils.js formatDate() which is display-only.
+function _isoDate(d) {
+  return d.getFullYear() + '-' +
+         String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0');
+}
+
+// Substitute {placeholder} tokens in a translated string.
+function _fill(key, params) {
+  let s = t(key);
+  Object.keys(params || {}).forEach(function(k) {
+    s = s.split('{' + k + '}').join(String(params[k]));
+  });
+  return s;
+}
+
+async function renderIntegrity(container) {
+  _cancelDashTimer();
+  _cancelLiveTimer();
+
+  // Default window matches Integrity.gs — the last 90 days
+  const to   = _isoToday();
+  const back = new Date();
+  back.setDate(back.getDate() - 90);
+  const from = _isoDate(back);
+
+  container.innerHTML = `
+    <div class="view-content">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">${t('integrity.title')}</h1>
+          <p class="dashboard-date">${t('integrity.subtitle')}</p>
+        </div>
+      </div>
+
+      <div class="int-disclaimer" role="note">
+        <span class="int-disclaimer-icon" aria-hidden="true">⚠</span>
+        <p>${t('integrity.disclaimer')}</p>
+      </div>
+
+      <div class="card int-controls">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="int-from" class="field-label">${t('integrity.from')}</label>
+            <input type="date" id="int-from" class="field-input" value="${_esc(from)}">
+          </div>
+          <div class="form-group">
+            <label for="int-to" class="field-label">${t('integrity.to')}</label>
+            <input type="date" id="int-to" class="field-input" value="${_esc(to)}">
+          </div>
+          <div class="form-group int-controls-action">
+            <button class="btn btn-primary" id="int-run-btn">${t('integrity.run')}</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="int-summary"></div>
+      <div id="int-results"></div>
+    </div>`;
+
+  document.getElementById('int-run-btn')?.addEventListener('click', _runIntegrityScan);
+
+  await _runIntegrityScan();
+}
+
+window.renderIntegrity = renderIntegrity;
+
+async function _runIntegrityScan() {
+  const btn      = document.getElementById('int-run-btn');
+  const summary  = document.getElementById('int-summary');
+  const results  = document.getElementById('int-results');
+  if (!results) return;
+
+  const from = document.getElementById('int-from')?.value || '';
+  const to   = document.getElementById('int-to')?.value   || '';
+
+  if (btn) { btn.disabled = true; btn.textContent = t('loading.please_wait') || '…'; }
+  if (summary) summary.innerHTML = '';
+  results.innerHTML = `
+    <p class="int-running">${t('integrity.running')}</p>`;
+
+  const res = await apiGetIntegrityReport(from, to).catch(function() { return null; });
+
+  if (btn) { btn.disabled = false; btn.textContent = t('integrity.run'); }
+
+  if (!res || res.status !== 'ok') {
+    results.innerHTML = '';
+    showToast(res?.message || t('error.server'), 'error');
+    return;
+  }
+
+  const data = res.data || {};
+  if (summary) summary.innerHTML = _integritySummary(data);
+  results.innerHTML = _integrityResults(data);
+}
+
+// Four-tile strip: how much was looked at, and what normal looks like here.
+function _integritySummary(data) {
+  const baseline = (data.baseline_spread_m === null || data.baseline_spread_m === undefined)
+    ? '—'
+    : data.baseline_spread_m + ' m';
+
+  const skipped = data.employees_skipped
+    ? `<p class="int-skipped">${_fill('integrity.skipped', { n: data.employees_skipped })}</p>`
+    : '';
+
+  return `
+    <div class="int-summary-grid">
+      ${_intTile(t('integrity.scanned'), data.records_analysed || 0, '')}
+      ${_intTile(t('integrity.covered'), data.employees_covered || 0, '')}
+      ${_intTile(t('integrity.flagged'), data.flagged || 0, data.flagged ? 'int-tile-alert' : '')}
+      ${_intTile(t('integrity.baseline'), baseline, '', t('integrity.baseline_hint'))}
+    </div>
+    ${skipped}`;
+}
+
+function _intTile(label, value, cls, hint) {
+  return `
+    <div class="int-tile ${cls}"${hint ? ` title="${_esc(hint)}"` : ''}>
+      <span class="int-tile-label">${_esc(label)}</span>
+      <span class="int-tile-value">${_esc(value)}</span>
+      ${hint ? `<span class="int-tile-hint">${_esc(hint)}</span>` : ''}
+    </div>`;
+}
+
+function _integrityResults(data) {
+  const results = Array.isArray(data.results) ? data.results : [];
+
+  if (!data.records_analysed) {
+    return _intEmpty('🛰', t('integrity.no_data_title'), t('integrity.no_data_body'));
+  }
+  if (results.length === 0) {
+    return _intEmpty('✓', t('integrity.no_findings_title'), t('integrity.no_findings_body'));
+  }
+
+  return `<div class="int-findings">
+    ${results.map(function(r) { return _integrityCard(r, data.baseline_spread_m); }).join('')}
+  </div>`;
+}
+
+function _intEmpty(icon, title, body) {
+  return `
+    <div class="empty-state">
+      <span class="empty-state-icon" aria-hidden="true">${icon}</span>
+      <p class="empty-state-title">${_esc(title)}</p>
+      <p class="empty-state-description">${_esc(body)}</p>
+    </div>`;
+}
+
+function _integrityCard(r, baseline) {
+  const level = r.level || 'low';
+  const badge = _INT_LEVEL_BADGE[level] || 'badge-pending';
+  const label = t('integrity.level_' + level);
+
+  // Scatter shown next to the workforce median — a bare "0.4m" means nothing
+  // without knowing that everyone else sits around 20m.
+  const scatter = (baseline === null || baseline === undefined)
+    ? `${t('integrity.spread')} ${r.spread_m} m`
+    : `${t('integrity.spread')} ${r.spread_m} m / ${baseline} m`;
+
+  const meta = [
+    r.department || '—',
+    `${r.records_analysed} ${t('integrity.records')}`,
+    scatter,
+    `${_fmtDate(r.first_date)} – ${_fmtDate(r.last_date)}`,
+  ].map(_esc).join(' · ');
+
+  return `
+    <article class="int-card int-card-${_esc(level)}">
+      <header class="int-card-head">
+        <div class="activity-avatar avatar-absent" aria-hidden="true">${_esc(_initials(r.employee_name))}</div>
+        <div class="int-card-id">
+          <span class="int-card-name">${_esc(r.employee_name || r.employee_id)}</span>
+          <span class="int-card-meta">${meta}</span>
+        </div>
+        <div class="int-card-score">
+          <span class="badge ${badge}">${_esc(label)}</span>
+          <span class="int-score-value">${_esc(r.score)}</span>
+        </div>
+      </header>
+
+      <div class="int-meter" role="img"
+           aria-label="${_esc(t('integrity.score'))}: ${_esc(r.score)}/100">
+        <span class="int-meter-fill" style="width:${Number(r.score)}%"></span>
+      </div>
+
+      <ul class="int-signals">
+        ${(r.signals || []).map(_integritySignal).join('')}
+      </ul>
+
+      <details class="int-evidence">
+        <summary>${t('integrity.evidence')}</summary>
+        ${_integrityEvidence(r.samples || [])}
+      </details>
+    </article>`;
+}
+
+function _integritySignal(sig) {
+  const mapper = _INT_SIG_PARAMS[sig.code];
+  const params = mapper ? mapper(sig.params || {}) : (sig.params || {});
+
+  return `
+    <li class="int-signal">
+      <span class="int-signal-title">${_esc(_fill('integrity.sig_' + sig.code, params))}</span>
+      <span class="int-signal-why">${_esc(t('integrity.sig_' + sig.code + '_why'))}</span>
+    </li>`;
+}
+
+function _integrityEvidence(samples) {
+  if (!samples.length) return '';
+
+  const rows = samples.map(function(s) {
+    const mismatch = s.device_match === 'FALSE';
+    return `
+      <tr>
+        <td>${_esc(_fmtDate(s.date))}</td>
+        <td class="int-num">${_esc(_fmtTime(s.check_in))}</td>
+        <td class="int-num">${_esc(s.lat)}, ${_esc(s.lng)}</td>
+        <td class="int-num">${s.accuracy === '' ? '—' : _esc(s.accuracy) + ' m'}</td>
+        <td>${mismatch
+          ? `<span class="device-mismatch-flag">⚠ ${t('integrity.device_bad')}</span>`
+          : t('integrity.device_ok')}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <div class="data-table-wrap int-evidence-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>${t('integrity.col_date')}</th>
+            <th>${t('integrity.col_time')}</th>
+            <th>${t('integrity.col_coords')}</th>
+            <th>${t('integrity.col_accuracy')}</th>
+            <th>${t('integrity.col_device')}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}

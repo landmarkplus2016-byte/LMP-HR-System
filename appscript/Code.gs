@@ -43,9 +43,42 @@ function doPost(e) {
     return respond(result);
 
   } catch (err) {
-    // Never crash silently — log the error and return a clean JSON response
-    console.error('[doPost] action=' + action + ' error=' + err.toString() + ' stack=' + err.stack);
-    return respond(error('Internal server error', 'خطأ داخلي في الخادم'));
+    // Never crash silently — log the error and return a clean JSON response.
+    // NOTE: this catch is why failed calls still show as "Completed" in the
+    // Apps Script Executions list — the exception never escapes doPost.
+    const detail = 'action=' + action + ' | ' + _errText(err);
+    console.error('[doPost] ' + detail + ' stack=' + (err && err.stack ? err.stack : 'n/a'));
+
+    // Config key debug_mode = TRUE surfaces the failing action and exception
+    // message to the client so a problem on a phone can be identified without
+    // reading the execution log. Default FALSE — users never see raw technical
+    // strings in normal operation (CLAUDE.md).
+    if (_debugEnabled()) {
+      return respond(error(
+        'Internal server error — ' + detail,
+        'خطأ داخلي في الخادم — ' + detail,
+        'internal_error'
+      ));
+    }
+    return respond(error('Internal server error', 'خطأ داخلي في الخادم', 'internal_error'));
+  }
+}
+
+// Readable text for anything that can be thrown (Error, string, object).
+function _errText(err) {
+  if (!err) return 'unknown error';
+  if (err.message) return String(err.message);
+  return String(err);
+}
+
+// Is debug_mode switched on in the Config tab?
+// Wrapped in its own try/catch: this runs INSIDE doPost's catch block, and a
+// throw here would escape as an HTML error page instead of our JSON envelope.
+function _debugEnabled() {
+  try {
+    return String(getConfigValue('debug_mode', 'FALSE')).toUpperCase() === 'TRUE';
+  } catch (_) {
+    return false;
   }
 }
 
@@ -80,6 +113,7 @@ function route(action, payload) {
     case 'add_manual_attendance':        return addManualAttendance(payload);
     case 'delete_attendance':            return deleteAttendance(payload);
     case 'get_flagged_records':          return getFlaggedRecords(payload);
+    case 'get_integrity_report':         return getIntegrityReport(payload);
 
     // ── Employees (Stage 4 / 5) ───────────────────────────────────────────
     case 'get_team_status':              return getTeamStatus(payload);

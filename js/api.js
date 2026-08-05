@@ -349,6 +349,12 @@ async function apiGetFlaggedRecords() {
   return post('get_flagged_records', {});
 }
 
+// Retrospective GPS spoofing analysis. Both dates are optional — Integrity.gs
+// falls back to the last 90 days when they are omitted.
+async function apiGetIntegrityReport(dateFrom, dateTo) {
+  return post('get_integrity_report', { date_from: dateFrom, date_to: dateTo });
+}
+
 async function apiDeleteAttendance(recordId) {
   return post('delete_attendance', { record_id: recordId });
 }

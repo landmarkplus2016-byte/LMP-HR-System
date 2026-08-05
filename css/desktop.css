@@ -1422,10 +1422,208 @@
     transform: translateX(-18px);
   }
 
+  /* ── GPS Integrity screen ────────────────────────────────────────────────── */
+  /* Read-only review of coordinate patterns. Deliberately sober: no alarm-red
+     surfaces, no sirens. Findings here are circumstantial and the visual
+     weight must not push HR toward a conclusion the data cannot support.     */
+
+  .int-disclaimer {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    padding: var(--sp-4) var(--sp-5);
+    margin-block-end: var(--sp-5);
+    background: var(--c-late-bg);
+    border: 1px solid var(--c-late-border);
+    border-radius: var(--r-lg);
+  }
+
+  .int-disclaimer-icon {
+    flex-shrink: 0;
+    font-size: var(--text-md);
+    color: var(--c-late);
+    line-height: var(--lh-snug);
+  }
+
+  .int-disclaimer p {
+    font-size: var(--text-sm);
+    line-height: var(--lh-relaxed);
+    color: var(--c-text-secondary);
+  }
+
+  .int-controls { margin-block-end: var(--sp-5); }
+
+  /* Two date fields and the run button on one line. Grid columns follow the
+     writing direction, so this lays out correctly in RTL without an override. */
+  .int-controls .form-row {
+    grid-template-columns: minmax(0, 200px) minmax(0, 200px) auto;
+    align-items: end;
+  }
+
+  .int-controls-action { display: flex; }
+
+  /* ── Summary tiles ── */
+  .int-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-4);
+    margin-block-end: var(--sp-5);
+  }
+
+  .int-tile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    padding: var(--sp-4) var(--sp-5);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .int-tile-alert { border-color: var(--c-absent-border); background: var(--c-absent-bg); }
+
+  .int-tile-label {
+    font-size: var(--text-xs);
+    font-weight: var(--fw-medium);
+    color: var(--c-text-muted);
+  }
+
+  .int-tile-value {
+    font-size: var(--text-xl);
+    font-weight: var(--fw-bold);
+    color: var(--c-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .int-tile-hint {
+    font-size: var(--text-xs);
+    line-height: var(--lh-snug);
+    color: var(--c-text-muted);
+  }
+
+  .int-skipped,
+  .int-running {
+    font-size: var(--text-sm);
+    color: var(--c-text-muted);
+    margin-block-end: var(--sp-4);
+  }
+
+  /* ── Finding cards ── */
+  .int-findings { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+  .int-card {
+    padding: var(--sp-5);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-inline-start: 3px solid var(--c-pending);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .int-card-high   { border-inline-start-color: var(--c-absent); }
+  .int-card-medium { border-inline-start-color: var(--c-late);   }
+  .int-card-low    { border-inline-start-color: var(--c-pending); }
+
+  .int-card-head {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+
+  .int-card-id   { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+  .int-card-name {
+    font-size: var(--text-base);
+    font-weight: var(--fw-semi);
+    color: var(--c-text);
+  }
+
+  .int-card-meta {
+    font-size: var(--text-xs);
+    color: var(--c-text-muted);
+  }
+
+  .int-card-score {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    flex-shrink: 0;
+  }
+
+  .int-score-value {
+    font-size: var(--text-lg);
+    font-weight: var(--fw-bold);
+    color: var(--c-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Score meter ── */
+  .int-meter {
+    height: 5px;
+    margin-block: var(--sp-4) var(--sp-4);
+    background: var(--c-surface-raised);
+    border-radius: var(--r-full);
+    overflow: hidden;
+  }
+
+  .int-meter-fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--r-full);
+    background: var(--c-pending);
+  }
+
+  .int-card-high   .int-meter-fill { background: var(--c-absent); }
+  .int-card-medium .int-meter-fill { background: var(--c-late);   }
+
+  /* ── Signal list ── */
+  .int-signals { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+  .int-signal {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-inline-start: var(--sp-4);
+    border-inline-start: 2px solid var(--c-border-strong);
+  }
+
+  .int-signal-title {
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    color: var(--c-text);
+  }
+
+  /* The "why" line carries the whole point of this screen — it is what stops a
+     signal from reading as an accusation, so it is never visually hidden. */
+  .int-signal-why {
+    font-size: var(--text-xs);
+    line-height: var(--lh-relaxed);
+    color: var(--c-text-muted);
+  }
+
+  /* ── Evidence drill-down ── */
+  .int-evidence { margin-block-start: var(--sp-4); }
+
+  .int-evidence summary {
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    color: var(--c-text-link);
+    cursor: pointer;
+    list-style-position: inside;
+  }
+
+  .int-evidence summary:hover { color: var(--c-primary-hover); }
+
+  .int-evidence-wrap { margin-block-start: var(--sp-3); }
+
+  .int-num { font-variant-numeric: tabular-nums; }
+
   /* ── Responsive degradation for smaller desktops ─────────────────────────── */
   @media (max-width: 1200px) {
-    .stat-grid { grid-template-columns: repeat(2, 1fr); }
-    .cal-grid  { grid-template-columns: repeat(2, 1fr); }
+    .stat-grid        { grid-template-columns: repeat(2, 1fr); }
+    .cal-grid         { grid-template-columns: repeat(2, 1fr); }
+    .int-summary-grid { grid-template-columns: repeat(2, 1fr); }
   }
 
   @media (max-width: 1100px) {

@@ -45,6 +45,7 @@ const Icons = {
   settings: `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>`,
   signout: `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/></svg>`,
   lang: `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/></svg>`,
+  shield: `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.415L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`,
 };
 
 // ---------------------------------------------------------------------------
@@ -80,6 +81,7 @@ const NAV_ITEMS = {
     { hash: 'attendance',     icon: Icons.clipboard, labelKey: 'nav.attendance'    },
     { hash: 'leave-requests', icon: Icons.calendar,  labelKey: 'nav.leave_requests'},
     { hash: 'reports',        icon: Icons.chart,     labelKey: 'nav.reports'       },
+    { hash: 'integrity',      icon: Icons.shield,    labelKey: 'nav.integrity'     },
     { hash: 'employees',      icon: Icons.people,    labelKey: 'nav.employees'     },
     { hash: 'departments',    icon: Icons.building,  labelKey: 'nav.departments'   },
     { hash: 'shifts',         icon: Icons.clock,     labelKey: 'nav.shifts'        },
@@ -112,6 +114,7 @@ const ROUTES = {
   'locations':        ['hr'],
   'holidays':         ['hr'],
   'config':           ['hr'],
+  'integrity':        ['hr'],
 };
 
 // ---------------------------------------------------------------------------
@@ -139,6 +142,7 @@ const VIEW_RENDER = {
   'locations':        'renderLocations',
   'holidays':         'renderHolidays',
   'config':           'renderConfig',
+  'integrity':        'renderIntegrity',
 };
 
 // ---------------------------------------------------------------------------

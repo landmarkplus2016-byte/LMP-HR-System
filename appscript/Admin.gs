@@ -274,7 +274,11 @@ const CONFIG_DEFAULTS = {
   offline_sync_enabled:  'TRUE',
   primary_language:      'ar',
   working_days:          '0,1,2,3,4',
-  biometric_required:    'TRUE'
+  biometric_required:    'TRUE',
+  // Developer switch, not exposed in the HR config screen. TRUE makes doPost
+  // return the failing action + exception message to the client so faults on a
+  // phone can be diagnosed without the execution log. Keep FALSE in normal use.
+  debug_mode:            'FALSE'
 };
 
 // Get the Config sheet. Creates it (or rebuilds it) in the correct 2-column
