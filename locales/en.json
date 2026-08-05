@@ -161,7 +161,11 @@
     "late_count": "Late",
     "leave_count": "On Leave",
     "live": "Live",
-    "attendance_title": "Team Attendance"
+    "attendance_title": "Team Attendance",
+    "my_attendance": "My attendance",
+    "not_checked_in": "Not checked in yet",
+    "day_complete": "Day complete",
+    "self_tag": "You"
   },
 
   "hr": {

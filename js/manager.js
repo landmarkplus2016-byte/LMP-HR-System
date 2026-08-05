@@ -36,6 +36,7 @@ function renderTeamStatus(container) {
       </span>
     </div>
     <div class="view-content" id="mgr-status-content">
+      ${_selfCardShell()}
       <div id="mgr-status-body">${_skeletonStatus()}</div>
     </div>`;
 
@@ -60,6 +61,10 @@ async function _loadTeamStatus() {
   }
 
   const { members, summary } = res.data;
+
+  // The card sits outside #mgr-status-body so the 60s refresh does not rebuild
+  // it — update its contents in place instead.
+  _updateSelfCard(members.find(m => m.is_self));
 
   document.getElementById('mgr-status-body').innerHTML = `
     <div class="mgr-stat-grid" role="list" aria-label="${t('team.status_today')}">
@@ -334,6 +339,63 @@ function _checkEmptyLeaveList() {
 // HTML builders
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Own-attendance card — the manager's way into the check-in screen
+// ---------------------------------------------------------------------------
+// A manager checks in like any other employee, but they land on the team view,
+// so this card links to #home where the biometric + GPS flow lives. Rendered
+// for managers only — HR reaches this screen too and never checks in.
+// The <a href> mirrors the nav links: the hashchange listener does the routing.
+function _selfCardShell() {
+  if (typeof App === 'undefined' || App.currentRole !== 'manager') return '';
+
+  return `
+    <a class="mgr-self-card" href="#home" id="mgr-self-card">
+      <span class="mgr-self-main">
+        <span class="mgr-self-title">${t('team.my_attendance')}</span>
+        <span class="mgr-self-sub" id="mgr-self-sub">${t('loading.please_wait')}</span>
+      </span>
+      <span class="mgr-self-action" id="mgr-self-action">${t('checkin.button')}</span>
+    </a>`;
+}
+
+// Fills in today's own status once team data lands.
+// `self` is the members[] row that getTeamStatus flagged is_self.
+function _updateSelfCard(self) {
+  const sub    = document.getElementById('mgr-self-sub');
+  const action = document.getElementById('mgr-self-action');
+  if (!sub || !action) return; // HR, or card not rendered
+
+  if (!self) {
+    sub.textContent    = t('team.not_checked_in');
+    action.textContent = t('checkin.button');
+    return;
+  }
+
+  // On approved leave — nothing to record today
+  if (self.status === 'on_leave') {
+    sub.textContent = _statusLabel('on_leave');
+    action.hidden   = true;
+    return;
+  }
+  action.hidden = false;
+
+  const done = self.check_in && self.check_out;
+  action.classList.toggle('mgr-self-action-done', !!done);
+
+  if (done) {
+    sub.textContent = `${t('attendance.check_in')} ${_fmtTime(self.check_in)}`
+                    + ` · ${t('attendance.check_out')} ${_fmtTime(self.check_out)}`;
+    action.textContent = t('team.day_complete');
+  } else if (self.check_in) {
+    sub.textContent    = `${t('attendance.check_in')} ${_fmtTime(self.check_in)}`;
+    action.textContent = t('checkout.button');
+  } else {
+    sub.textContent    = t('team.not_checked_in');
+    action.textContent = t('checkin.button');
+  }
+}
+
 function _mgrStatCard(value, label, variant) {
   return `
     <div class="mgr-stat-card mgr-stat-${_esc(variant)}" role="listitem">
@@ -353,7 +415,10 @@ function _memberRow(member) {
     <li class="mgr-member-row">
       <span class="mgr-avatar" aria-hidden="true">${_esc(initials)}</span>
       <span class="mgr-member-info">
-        <span class="mgr-member-name">${_esc(member.name)}</span>
+        <span class="mgr-member-name">
+          ${_esc(member.name)}
+          ${member.is_self ? `<span class="mgr-self-tag">${_esc(t('team.self_tag'))}</span>` : ''}
+        </span>
         <span class="mgr-member-dept">${_esc(member.department)}</span>
       </span>
       <span class="mgr-member-right">

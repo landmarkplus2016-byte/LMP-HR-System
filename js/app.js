@@ -56,12 +56,15 @@ const NAV_ITEMS = {
     { hash: 'history', icon: Icons.history,   labelKey: 'nav.history' },
     { hash: 'leave',   icon: Icons.leave,     labelKey: 'nav.leave'   },
   ],
+  // A manager records their own attendance too, but their landing screen is the
+  // team view — the check-in screen (#home) is reached from the "my attendance"
+  // card at the top of it, not from a tab, so the bar stays readable on mobile.
   manager: [
     { hash: 'team',            icon: Icons.team,      labelKey: 'nav.team'          },
     { hash: 'team-attendance', icon: Icons.clipboard, labelKey: 'nav.attendance'    },
     { hash: 'team-leaves',     icon: Icons.calendar,  labelKey: 'nav.leave_requests'},
-    { hash: 'home',            icon: Icons.home,      labelKey: 'nav.home'          },
     { hash: 'history',         icon: Icons.history,   labelKey: 'nav.history'       },
+    { hash: 'leave',           icon: Icons.leave,     labelKey: 'nav.leave'         },
   ],
   hr: [
     { hash: 'dashboard',      icon: Icons.dashboard, labelKey: 'nav.dashboard'     },
@@ -84,8 +87,8 @@ const NAV_ITEMS = {
 const ROUTES = {
   'home':             ['employee', 'manager', 'hr'],
   'history':          ['employee', 'manager'],
-  'leave':            ['employee'],
-  'leave-balance':    ['employee'],
+  'leave':            ['employee', 'manager'],
+  'leave-balance':    ['employee', 'manager'],
   'team':             ['manager', 'hr'],
   'team-attendance':  ['manager', 'hr'],
   'team-leaves':      ['manager', 'hr'],
@@ -260,8 +263,16 @@ function showView(route) {
   const app = document.getElementById('app');
   if (!app) return;
 
-  // 'home' resolves to a role-specific route
-  const resolved = (route === 'home' || route === '') ? getHomeHash(App.currentRole) : route;
+  // An empty route means "wherever this role starts". An explicit 'home' is the
+  // personal check-in screen — employees and managers both use it, so it must
+  // NOT be rewritten to the role's landing screen or the check-in flow becomes
+  // unreachable for managers. HR never checks in, so send them to the dashboard.
+  let resolved = route;
+  if (route === '') {
+    resolved = getHomeHash(App.currentRole);
+  } else if (route === 'home' && App.currentRole === 'hr') {
+    resolved = 'dashboard';
+  }
 
   // Look up the render function from the owning module
   const fnName = VIEW_RENDER[resolved];

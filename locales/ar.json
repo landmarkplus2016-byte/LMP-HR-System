@@ -161,7 +161,11 @@
     "late_count": "متأخر",
     "leave_count": "في إجازة",
     "live": "مباشر",
-    "attendance_title": "حضور الفريق"
+    "attendance_title": "حضور الفريق",
+    "my_attendance": "حضوري",
+    "not_checked_in": "لم تسجّل حضورك بعد",
+    "day_complete": "اكتمل اليوم",
+    "self_tag": "أنت"
   },
 
   "hr": {

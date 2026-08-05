@@ -99,6 +99,9 @@ function getTeamStatus(payload) {
       name:        String(emp.name       || emp.username || ''),
       department:  String(emp.department || ''),
       shift_id:    String(emp.shift_id   || ''),
+      // Lets a manager's own row be marked in the team list and drive the
+      // "my attendance" card on the team screen
+      is_self:     id === String(auth.employee.id),
       status,
       check_in,
       check_out,
@@ -417,9 +420,16 @@ function _getTeamMembers(employees, callingEmployee, role) {
   if (role === 'hr') {
     return employees.filter(e => String(e.active).toUpperCase() === 'TRUE');
   }
-  // Manager sees only their direct reports
+  // Manager sees their direct reports plus themselves — a manager records
+  // attendance like anyone else, so their own row belongs in team status and
+  // team attendance.
+  //
+  // Leave approvals deliberately do NOT use this helper: getTeamLeaves,
+  // approveLeave and rejectLeave (Leaves.gs) scope by manager_id only, which
+  // keeps a manager out of their own approval queue.
   return employees.filter(e =>
-    String(e.manager_id) === String(callingEmployee.id) &&
-    String(e.active).toUpperCase() === 'TRUE'
+    String(e.active).toUpperCase() === 'TRUE' &&
+    (String(e.manager_id) === String(callingEmployee.id) ||
+     String(e.id)         === String(callingEmployee.id))
   );
 }
