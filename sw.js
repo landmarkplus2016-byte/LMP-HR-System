@@ -14,7 +14,7 @@
 
 'use strict';
 
-const CACHE_VERSION = 'lmp-v2';
+const CACHE_VERSION = 'lmp-v3';
 
 // ---------------------------------------------------------------------------
 // Derive the scope (handles both '/' in dev and '/sub-path/' on GitHub Pages)
@@ -52,6 +52,8 @@ const STATIC_ASSETS = [
   SCOPE + 'locales/en.json',
   SCOPE + 'assets/icon-192.png',
   SCOPE + 'assets/icon-512.png',
+  SCOPE + 'assets/icon-maskable-192.png',
+  SCOPE + 'assets/icon-maskable-512.png',
   SCOPE + 'assets/logo.svg',
 ];
 
