@@ -73,20 +73,22 @@ function getReportData(payload) {
   safeEmployees.forEach(function(e) { empIdSet[e.id] = true; });
 
   // ── Attendance for the month ───────────────────────────────────────────────
+  // r.date comes back from Sheets as a Date object, not a string — normalise
+  // before comparing or report.js can never match a day column to a record
   const attendance = {};
   sheetToObjects(getSheet('Attendance'))
     .filter(function(r) {
-      return empIdSet[String(r.employee_id)] &&
-             String(r.date) >= dateFrom &&
-             String(r.date) <= dateTo;
+      if (!empIdSet[String(r.employee_id)]) return false;
+      const d = _normaliseLeaveDate(r.date);
+      return d >= dateFrom && d <= dateTo;
     })
     .forEach(function(r) {
       const id = String(r.employee_id);
       if (!attendance[id]) attendance[id] = [];
       attendance[id].push({
-        date:         String(r.date         || ''),
-        check_in:     String(r.check_in     || ''),
-        check_out:    String(r.check_out    || ''),
+        date:         _normaliseLeaveDate(r.date),
+        check_in:     _normaliseTime(r.check_in),
+        check_out:    _normaliseTime(r.check_out),
         hours_worked: String(r.hours_worked || ''),
         status:       String(r.status       || 'present')
       });
@@ -99,15 +101,16 @@ function getReportData(payload) {
       if (!empIdSet[String(l.employee_id)]) return false;
       if (String(l.status || '').toLowerCase() !== 'approved') return false;
       // Overlap test: leave starts before month end AND ends after month start
-      return String(l.end_date) >= dateFrom && String(l.start_date) <= dateTo;
+      return _normaliseLeaveDate(l.end_date)   >= dateFrom &&
+             _normaliseLeaveDate(l.start_date) <= dateTo;
     })
     .forEach(function(l) {
       const id = String(l.employee_id);
       if (!leaves[id]) leaves[id] = [];
       leaves[id].push({
-        start_date: String(l.start_date || ''),
-        end_date:   String(l.end_date   || ''),
-        type:       String(l.type       || '')
+        start_date: _normaliseLeaveDate(l.start_date),
+        end_date:   _normaliseLeaveDate(l.end_date),
+        type:       String(l.type || '')
       });
     });
 
@@ -115,10 +118,8 @@ function getReportData(payload) {
   var holidays = [];
   try {
     holidays = sheetToObjects(getSheet('Holidays'))
-      .filter(function(h) {
-        return String(h.date) >= dateFrom && String(h.date) <= dateTo;
-      })
-      .map(function(h) { return String(h.date); });
+      .map(function(h) { return _normaliseLeaveDate(h.date); })
+      .filter(function(d) { return d >= dateFrom && d <= dateTo; });
   } catch (e) {
     // Holidays sheet missing or empty — non-fatal
   }
