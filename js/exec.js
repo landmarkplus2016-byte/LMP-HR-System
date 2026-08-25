@@ -1,12 +1,17 @@
 // =============================================================================
 // exec.js — Executive views (CEO / Managing Director)
 //
-// Exposes one render function called by app.js router:
+// Exposes two render functions called by the app.js router:
 //   renderOrgStatus(container)  → #org
+//   renderExecLeaves(container) → #exec-leaves
 //
-// These roles are read-only by design: this file calls exactly one endpoint,
-// get_org_status, and never writes anything. They do not check in, so there is
-// no attendance action anywhere on this screen.
+// The company status screen is read-only — it calls exactly one endpoint,
+// get_org_status, and never writes. Executives do not check in, so there is no
+// attendance action anywhere on it.
+//
+// Leave approval is the single exception to the read-only rule: department
+// managers report straight to the CEO/MD, so nobody else can clear their leave.
+// The server scopes it to direct reports only — see approveLeave in Leaves.gs.
 //
 // Auto-refresh: polls every 60 seconds via _orgRefreshTimer, matching the
 // manager team screen. The timer self-cancels when its element leaves the DOM.
@@ -28,13 +33,23 @@ let _orgRefreshTimer = null;
 // anything the user opened from snapping shut on the next 60s refresh.
 let _orgExpanded = new Set();
 
+// Last successful get_org_status payload. The status-list modal is built from
+// this rather than from a second call — the grouped response already contains
+// every employee the summary counted.
+let _orgData = null;
+
+// Status whose employee list is currently open in the modal, or null.
+let _orgOpenStatus = null;
+
 // =============================================================================
 // renderOrgStatus — #org
 // Company-wide status for today, one card per manager.
 // =============================================================================
 function renderOrgStatus(container) {
   _execCancelRefresh();
-  _orgExpanded = new Set();
+  _orgExpanded   = new Set();
+  _orgData       = null;
+  _orgOpenStatus = null;
 
   container.innerHTML = `
     <div class="view-content">
@@ -50,10 +65,51 @@ function renderOrgStatus(container) {
       </div>
 
       <div id="exec-body">${_execSkeleton()}</div>
+    </div>
+
+    <div class="modal-overlay" id="exec-list-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="exec-list-title">
+        <div class="modal-hd">
+          <span class="modal-title" id="exec-list-title"></span>
+          <button class="btn-icon" id="exec-list-close" type="button" aria-label="${t('action.close')}">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-bd" id="exec-list-bd"></div>
+      </div>
     </div>`;
+
+  // Delegated: #exec-body is rebuilt on every 60s refresh, so the listener has
+  // to live on an element that survives it
+  document.getElementById('exec-body')?.addEventListener('click', e => {
+    const card = e.target.closest('.exec-stat-btn');
+    if (card) _execOpenStatusList(card.dataset.status);
+  });
+
+  document.getElementById('exec-list-close')?.addEventListener('click', _execCloseStatusList);
+  document.getElementById('exec-list-overlay')?.addEventListener('click', e => {
+    if (e.target.id === 'exec-list-overlay') _execCloseStatusList();
+  });
+  document.addEventListener('keydown', _execEscToClose);
 
   _loadOrgStatus();
   _orgRefreshTimer = setInterval(_loadOrgStatus, 60000);
+}
+
+// =============================================================================
+// renderExecLeaves — #exec-leaves
+// Pending leave requests raised by the executive's own direct reports.
+//
+// Department managers report straight to the CEO/MD, so there is nobody below
+// them to clear their leave. The queue is identical to a manager's and the
+// server scopes both the same way — direct reports only, pending only — so this
+// delegates to renderTeamLeaves instead of keeping a second copy of that view.
+// =============================================================================
+function renderExecLeaves(container) {
+  _execCancelRefresh();
+  renderTeamLeaves(container);
 }
 
 async function _loadOrgStatus() {
@@ -81,6 +137,8 @@ async function _loadOrgStatus() {
   // Remember what is open before the rebuild, then restore it afterwards
   _rememberExpanded();
 
+  _orgData = res.data;
+
   const { summary, groups, unassigned } = res.data;
   const hasUnassigned = unassigned && unassigned.members && unassigned.members.length > 0;
 
@@ -102,6 +160,10 @@ async function _loadOrgStatus() {
     }`;
 
   _restoreExpanded();
+
+  // Keep an open status list in step with the refresh rather than letting it go
+  // stale behind the numbers that opened it
+  if (_orgOpenStatus) _execFillStatusList(_orgOpenStatus);
 }
 
 // ---------------------------------------------------------------------------
@@ -126,21 +188,157 @@ function _restoreExpanded() {
 // ---------------------------------------------------------------------------
 
 // Company-wide totals — reuses the manager stat card visual, in a grid that
-// widens to four across on desktop
+// widens to four across on desktop.
+//
+// Each card is a button that opens the matching employee list. A zero card is
+// disabled: there is no list behind it, and a card that opens an empty dialog
+// reads as a broken one.
 function _execSummaryCards(s) {
-  const card = (value, label, variant) => `
-    <div class="mgr-stat-card mgr-stat-${variant}" role="listitem">
-      <span class="mgr-stat-num">${Number(value) || 0}</span>
-      <span class="mgr-stat-label">${_execEsc(label)}</span>
-    </div>`;
+  const card = (value, label, variant, status) => {
+    const n = Number(value) || 0;
+    return `
+      <button type="button"
+              class="mgr-stat-card mgr-stat-${variant} exec-stat-btn"
+              data-status="${status}"
+              ${n === 0 ? 'disabled' : ''}
+              aria-label="${_execEsc(label)}: ${n} — ${t('exec.view_list')}">
+        <span class="mgr-stat-num">${n}</span>
+        <span class="mgr-stat-label">${_execEsc(label)}</span>
+      </button>`;
+  };
 
   return `
-    <div class="exec-summary-grid" role="list" aria-label="${t('exec.company_today')}">
-      ${card(s.present,  t('team.present_count'), 'present')}
-      ${card(s.absent,   t('team.absent_count'),  'absent')}
-      ${card(s.late,     t('team.late_count'),    'late')}
-      ${card(s.on_leave, t('team.leave_count'),   'leave')}
+    <div class="exec-summary-grid" role="group" aria-label="${t('exec.company_today')}">
+      ${card(s.present,  t('team.present_count'), 'present', 'present')}
+      ${card(s.absent,   t('team.absent_count'),  'absent',  'absent')}
+      ${card(s.late,     t('team.late_count'),    'late',    'late')}
+      ${card(s.on_leave, t('team.leave_count'),   'leave',   'on_leave')}
     </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Status list modal — every employee currently in one status
+// ---------------------------------------------------------------------------
+
+function _execOpenStatusList(status) {
+  if (!status || !_orgData) return;
+  _orgOpenStatus = status;
+
+  const overlay = document.getElementById('exec-list-overlay');
+  if (!overlay) return;
+
+  _execFillStatusList(status);
+  overlay.hidden = false;
+  document.getElementById('exec-list-close')?.focus();
+}
+
+function _execCloseStatusList() {
+  _orgOpenStatus = null;
+  const overlay = document.getElementById('exec-list-overlay');
+  if (overlay) overlay.hidden = true;
+}
+
+function _execEscToClose(e) {
+  if (e.key !== 'Escape' || !_orgOpenStatus) return;
+  // Screen gone (navigated away) — drop the listener with it
+  if (!document.getElementById('exec-list-overlay')) {
+    document.removeEventListener('keydown', _execEscToClose);
+    return;
+  }
+  _execCloseStatusList();
+}
+
+// Builds the modal title and body for one status. Split out from the open
+// handler so the 60s refresh can rebuild an already-open list in place.
+function _execFillStatusList(status) {
+  const titleEl = document.getElementById('exec-list-title');
+  const bodyEl  = document.getElementById('exec-list-bd');
+  if (!titleEl || !bodyEl || !_orgData) return;
+
+  const rows = _execAllMembers(_orgData)
+    .filter(m => m.status === status);
+
+  titleEl.textContent =
+    `${_execStatusLabel(status)} — ${rows.length}`;
+
+  bodyEl.innerHTML = rows.length === 0
+    ? `<p class="exec-list-empty">${t('exec.none_in_status')}</p>`
+    : `<ul class="exec-member-list exec-list-modal-list" role="list">
+         ${rows.map(m => _execListRow(m)).join('')}
+       </ul>`;
+}
+
+// Same member row as the group cards, with the reporting line added — an
+// executive scanning a company-wide list needs to know whose team each name
+// sits in, which the grouped view conveys by position alone.
+function _execListRow(m) {
+  const initials = _execInitials(m.name);
+  const timeStr  = m.check_in ? _execFmtTime(m.check_in) : '';
+  const under    = m.manager_name || t('exec.unassigned');
+
+  return `
+    <li class="mgr-member-row">
+      <span class="mgr-avatar" aria-hidden="true">${_execEsc(initials)}</span>
+      <span class="mgr-member-info">
+        <span class="mgr-member-name">${_execEsc(m.name)}</span>
+        <span class="mgr-member-dept exec-list-sub">${_execEsc(m.department || t('exec.no_department'))} · ${_execEsc(t('exec.reports_to'))} ${_execEsc(under)}</span>
+      </span>
+      <span class="mgr-member-right">
+        ${timeStr ? `<span class="mgr-member-time">${_execEsc(timeStr)}</span>` : ''}
+        <span class="badge ${_execBadgeClass(m.status)}">${_execEsc(_execStatusLabel(m.status))}</span>
+      </span>
+    </li>`;
+}
+
+// Flattens the grouped response back into the one list of employees the
+// company summary counted, each carrying the manager they sit under.
+//
+// Group members are pushed first so they pick up the right manager name. Group
+// heads go in afterwards purely as a fallback — a head normally already appears
+// as a member of whoever they report to, and only surfaces here in the odd case
+// of an employee whose manager_id points at themselves, who would otherwise be
+// counted in the totals but missing from every list.
+function _execAllMembers(data) {
+  const seen = new Set();
+  const out  = [];
+
+  const push = (m, managerName) => {
+    const id = String((m && m.id) || '');
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    out.push({
+      id:           id,
+      name:         String(m.name       || ''),
+      department:   String(m.department || ''),
+      status:       String(m.status     || 'absent').toLowerCase(),
+      check_in:     String(m.check_in   || ''),
+      manager_name: String(managerName  || '')
+    });
+  };
+
+  (data.groups || []).forEach(g => {
+    (g.members || []).forEach(m => push(m, g.manager_name));
+  });
+
+  if (data.unassigned && data.unassigned.members) {
+    data.unassigned.members.forEach(m => push(m, ''));
+  }
+
+  // A head with no manager_status is not part of the attending workforce (the
+  // CEO/MD themselves, or HR) — they were never in the totals, so adding them
+  // here would put a name in a status list that the card's number does not count
+  (data.groups || []).forEach(g => {
+    if (!g.manager_status) return;
+    push({
+      id:         g.manager_id,
+      name:       g.manager_name,
+      department: g.department,
+      status:     g.manager_status,
+      check_in:   g.manager_check_in
+    }, '');
+  });
+
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // One collapsible card per manager. <details>/<summary> gives collapse
@@ -154,9 +352,11 @@ function _execGroupCard(g) {
         <span class="exec-group-info">
           <span class="exec-group-name">
             ${_execEsc(g.manager_name)}
-            <span class="badge ${_execBadgeClass(g.manager_status)} exec-group-mgr-badge">
-              ${_execEsc(_execStatusLabel(g.manager_status))}
-            </span>
+            ${g.manager_status
+              ? `<span class="badge ${_execBadgeClass(g.manager_status)} exec-group-mgr-badge">
+                   ${_execEsc(_execStatusLabel(g.manager_status))}
+                 </span>`
+              : ''}
           </span>
           <span class="exec-group-dept">${_execEsc(g.department || t('exec.no_department'))}</span>
         </span>
@@ -171,8 +371,8 @@ function _execGroupCard(g) {
     </details>`;
 }
 
-// Everyone whose manager_id is blank or points at somebody who is not in the
-// active workforce. Shown so a gap in the org chart is visible rather than
+// Everyone whose manager_id is blank or points at somebody who is no longer an
+// active employee. Shown so a gap in the org chart is visible rather than
 // quietly dropping people off the screen.
 function _execUnassignedCard(u) {
   return `
@@ -210,9 +410,8 @@ function _execCounts(s) {
 }
 
 function _execMemberRow(m) {
-  const initials = String(m.name || '?').trim().split(/\s+/)
-    .slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
-  const timeStr = m.check_in ? _execFmtTime(m.check_in) : '';
+  const initials = _execInitials(m.name);
+  const timeStr  = m.check_in ? _execFmtTime(m.check_in) : '';
 
   return `
     <li class="mgr-member-row">
@@ -260,6 +459,11 @@ window.addEventListener('hashchange', _execCancelRefresh);
 
 function _execToday() {
   return typeof formatDate === 'function' ? formatDate(new Date()) : '';
+}
+
+function _execInitials(name) {
+  return String(name || '?').trim().split(/\s+/)
+    .slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 }
 
 function _execFmtTime(hhMm) {

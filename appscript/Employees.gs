@@ -455,6 +455,14 @@ function _getTeamMembers(employees, callingEmployee, role) {
 // A manager appears twice by design: once as the head of their own group, and
 // once as a member inside their own manager's group. Grouping is one level
 // deep — no nesting.
+//
+// A group head does not have to be part of the attending workforce. Department
+// managers report straight to the CEO/MD, who never check in — heading a group
+// off the `headById` map (all active employees) rather than off the member rows
+// keeps those teams under the right name instead of dumping them in
+// `unassigned`. Such a head returns manager_status: '' — there is no attendance
+// to report for them, and a blank is what tells the frontend to omit the badge
+// rather than print a fake "Absent".
 // =============================================================================
 function getOrgStatus(payload) {
   const auth = validateSession(payload);
@@ -493,16 +501,30 @@ function getOrgStatus(payload) {
 
   const members = workforce.map(emp => _orgMemberRow(emp, attMap, leaveMap));
 
-  // id → member, so a manager's own status can be shown on their group header
+  // id → member, so a manager's own status can be shown on their group header.
+  // Attending workforce only — these are the rows that carry attendance.
   const byId = {};
   members.forEach(m => { byId[m.id] = m; });
+
+  // id → name/department for EVERY active employee, executives and HR included.
+  // Resolving a group head through this is what keeps a team reporting to the
+  // CEO under the CEO's name instead of falling into `unassigned`.
+  const headById = {};
+  employees
+    .filter(e => String(e.active).toUpperCase() === 'TRUE')
+    .forEach(e => {
+      headById[String(e.id)] = {
+        name:       String(e.name       || e.username || ''),
+        department: String(e.department || '')
+      };
+    });
 
   // Bucket every member under their manager_id
   const buckets    = {};
   const unassigned = [];
   members.forEach(m => {
     const mgrId = String(m.manager_id || '').trim();
-    if (!mgrId || !byId[mgrId]) {
+    if (!mgrId || !headById[mgrId]) {
       unassigned.push(m);
       return;
     }
@@ -511,18 +533,21 @@ function getOrgStatus(payload) {
   });
 
   const groups = Object.keys(buckets).map(mgrId => {
-    const head = byId[mgrId];
+    const head = headById[mgrId];
+    // Present only when the head is part of the attending workforce — a CEO/MD
+    // or HR head has no attendance, and blank means "render no badge"
+    const headMember = byId[mgrId];
     // A manager heads their own group, so exclude their row from the member
     // list to avoid showing them twice within the same card
     const teamMembers = buckets[mgrId].filter(m => m.id !== mgrId);
     return {
-      manager_id:     mgrId,
-      manager_name:   head.name,
-      department:     head.department,
-      manager_status: head.status,
-      manager_check_in: head.check_in,
-      members:        teamMembers.sort((a, b) => a.name.localeCompare(b.name)),
-      summary:        _orgSummary(teamMembers)
+      manager_id:       mgrId,
+      manager_name:     head.name,
+      department:       head.department,
+      manager_status:   headMember ? headMember.status   : '',
+      manager_check_in: headMember ? headMember.check_in : '',
+      members:          teamMembers.sort((a, b) => a.name.localeCompare(b.name)),
+      summary:          _orgSummary(teamMembers)
     };
   }).sort((a, b) => String(a.manager_name).localeCompare(String(b.manager_name)));
 

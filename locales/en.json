@@ -65,7 +65,10 @@
     "unassigned": "No manager assigned",
     "unassigned_hint": "Not listed under any manager",
     "no_department": "No department",
-    "no_data": "No employee data to show"
+    "no_data": "No employee data to show",
+    "view_list": "View the list",
+    "reports_to": "Reports to",
+    "none_in_status": "Nobody is in this status today"
   },
 
   "loading": {

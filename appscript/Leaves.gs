@@ -142,19 +142,25 @@ function getMyLeaves(payload) {
 // =============================================================================
 // getTeamLeaves
 // Manager sees pending leaves for their direct reports.
+// CEO / MD see pending leaves for the department managers who report straight
+// to them — scoped identically to a manager, never company-wide.
 // HR sees all leaves company-wide.
 //
 // Also returns `balances` — the annual leave balance for every employee in
-// scope — so managers and HR can see how much entitlement someone has left
-// before approving a request. Each returned request also carries the
-// requester's annual_total / annual_taken / annual_remaining inline.
+// scope — so approvers can see how much entitlement someone has left before
+// approving a request. Each returned request also carries the requester's
+// annual_total / annual_taken / annual_remaining inline.
 // =============================================================================
 function getTeamLeaves(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
 
   const role = String(auth.employee.role || '').toLowerCase();
-  if (role !== 'manager' && role !== 'hr') {
+  // Managers and executives are both "direct report" approvers — they only ever
+  // see and act on people whose manager_id points at them. HR is the only role
+  // with a company-wide view here.
+  const directOnly = (role === 'manager' || isExecRole(role));
+  if (!directOnly && role !== 'hr') {
     return error('Access denied', 'غير مخوّل للوصول');
   }
 
@@ -190,9 +196,9 @@ function getTeamLeaves(payload) {
   const requests = allLeaves
     .filter(function(l) {
       if (!teamIds.includes(String(l.employee_id))) return false;
-      // Managers only see pending requests (their approval queue).
+      // Managers and executives only see pending requests (their approval queue).
       // HR sees all statuses so the Leave Requests screen shows the full picture.
-      if (role === 'manager') return String(l.status) === 'pending';
+      if (directOnly) return String(l.status) === 'pending';
       return true;
     })
     .sort(function(a, b) {
@@ -291,15 +297,19 @@ function _annualBalances(employeeIds, allLeaves) {
 
 // =============================================================================
 // approveLeave
-// Manager/HR approves a pending request.
-// Manager is restricted to their own direct reports.
+// Manager/CEO/MD/HR approves a pending request.
+//
+// This is the ONE write path open to the executive roles — department managers
+// report straight to the CEO/MD, so nobody else can clear their leave. Every
+// non-HR caller is confined to their own direct reports by the manager_id check
+// below; executives get no company-wide write reach from this.
 // =============================================================================
 function approveLeave(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
 
   const role = String(auth.employee.role || '').toLowerCase();
-  if (role !== 'manager' && role !== 'hr') {
+  if (role !== 'manager' && role !== 'hr' && !isExecRole(role)) {
     return error('Access denied', 'غير مخوّل للوصول');
   }
 
@@ -314,7 +324,8 @@ function approveLeave(payload) {
     return error('Leave request is no longer pending', 'طلب الإجازة لم يعد قيد الانتظار');
   }
 
-  if (role === 'manager') {
+  // HR is the only role allowed to act outside their own reporting line
+  if (role !== 'hr') {
     const emp = findRow(getSheet('Employees'), 'id', String(leave.employee_id));
     if (!emp || String(emp.manager_id) !== String(auth.employee.id)) {
       return error('Employee is not in your team', 'الموظف ليس في فريقك');
@@ -332,14 +343,15 @@ function approveLeave(payload) {
 
 // =============================================================================
 // rejectLeave
-// Manager/HR rejects a pending request with an optional reason.
+// Manager/CEO/MD/HR rejects a pending request with an optional reason.
+// Same scoping rule as approveLeave — non-HR callers act on direct reports only.
 // =============================================================================
 function rejectLeave(payload) {
   const auth = validateSession(payload);
   if (!auth.valid) return auth.error;
 
   const role = String(auth.employee.role || '').toLowerCase();
-  if (role !== 'manager' && role !== 'hr') {
+  if (role !== 'manager' && role !== 'hr' && !isExecRole(role)) {
     return error('Access denied', 'غير مخوّل للوصول');
   }
 
@@ -355,7 +367,8 @@ function rejectLeave(payload) {
     return error('Leave request is no longer pending', 'طلب الإجازة لم يعد قيد الانتظار');
   }
 
-  if (role === 'manager') {
+  // HR is the only role allowed to act outside their own reporting line
+  if (role !== 'hr') {
     const emp = findRow(getSheet('Employees'), 'id', String(leave.employee_id));
     if (!emp || String(emp.manager_id) !== String(auth.employee.id)) {
       return error('Employee is not in your team', 'الموظف ليس في فريقك');

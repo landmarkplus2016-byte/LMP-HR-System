@@ -67,13 +67,16 @@ const NAV_ITEMS = {
     { hash: 'history',         icon: Icons.history,   labelKey: 'nav.history'       },
     { hash: 'leave',           icon: Icons.leave,     labelKey: 'nav.leave'         },
   ],
-  // CEO and Managing Director share one screen and one permission group. They
-  // do not check in, so there is no home/check-in item — same as HR.
+  // CEO and Managing Director share one permission group. They do not check in,
+  // so there is no home/check-in item — same as HR. Leave approvals are theirs
+  // because department managers report straight to them.
   ceo: [
-    { hash: 'org', icon: Icons.team, labelKey: 'nav.org' },
+    { hash: 'org',         icon: Icons.team,     labelKey: 'nav.org'           },
+    { hash: 'exec-leaves', icon: Icons.calendar, labelKey: 'nav.leave_requests'},
   ],
   md: [
-    { hash: 'org', icon: Icons.team, labelKey: 'nav.org' },
+    { hash: 'org',         icon: Icons.team,     labelKey: 'nav.org'           },
+    { hash: 'exec-leaves', icon: Icons.calendar, labelKey: 'nav.leave_requests'},
   ],
   hr: [
     { hash: 'dashboard',      icon: Icons.dashboard, labelKey: 'nav.dashboard'     },
@@ -100,6 +103,7 @@ const ROUTES = {
   'leave':            ['employee', 'manager'],
   'leave-balance':    ['employee', 'manager'],
   'org':              ['ceo', 'md'],
+  'exec-leaves':      ['ceo', 'md'],
   'team':             ['manager', 'hr'],
   'team-attendance':  ['manager', 'hr'],
   'team-leaves':      ['manager', 'hr'],
@@ -128,6 +132,7 @@ const VIEW_RENDER = {
   'leave':            'renderLeaveForm',
   'leave-balance':    'renderLeaveBalance',
   'org':              'renderOrgStatus',
+  'exec-leaves':      'renderExecLeaves',
   'team':             'renderTeamStatus',
   'team-attendance':  'renderTeamAttendance',
   'team-leaves':      'renderTeamLeaves',

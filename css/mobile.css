@@ -672,6 +672,59 @@
   .exec-summary-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
+/* Each total is a button that opens the matching employee list. It inherits the
+   whole .mgr-stat-card look — these overrides only undo the browser's button
+   defaults so it renders identically to the card it replaced. */
+.exec-stat-btn {
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.exec-stat-btn:active { transform: translateY(-1px); }
+
+.exec-stat-btn:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
+/* Nothing to open behind a zero — stays legible, drops the affordance */
+.exec-stat-btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.exec-stat-btn:disabled:hover {
+  box-shadow: var(--shadow-xs);
+  transform: none;
+}
+
+/* Status list modal — the list already sits on the modal surface, so it drops
+   the inset panel treatment the group cards use */
+.exec-list-modal-list {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* Department + reporting line. Allowed to wrap: in a company-wide list the
+   manager name is the point of the row, and nowrap would ellipsis it away. */
+.exec-list-sub {
+  white-space: normal;
+  overflow: visible;
+  line-height: var(--lh-snug);
+}
+
+.exec-list-empty {
+  font-size: var(--text-sm);
+  color: var(--c-text-muted);
+  text-align: center;
+  padding: var(--sp-5) 0;
+}
+
 /* One <details> per manager — collapsed by default */
 .exec-group {
   background: var(--c-surface);
