@@ -372,8 +372,9 @@ function _badgeClass(status) {
     present:  'badge-present',
     late:     'badge-late',
     absent:   'badge-absent',
-    on_leave: 'badge-leave',
-    holiday:  'badge-holiday',
+    on_leave:   'badge-leave',
+    on_mission: 'badge-mission',
+    holiday:    'badge-holiday',
   }[status] || 'badge-absent';
 }
 
@@ -409,6 +410,224 @@ function _emptyStateItem(icon, msg) {
     <div class="emp-empty-icon" aria-hidden="true">${icon}</div>
     <p class="emp-empty-msg">${msg}</p>
   </li>`;
+}
+
+// =============================================================================
+// renderMissions — #missions
+//
+// Official off-site duty: a meeting, training or site visit that keeps the
+// employee away from a company location on a working day. An approved mission
+// is what stops that day being counted as an absence.
+//
+// Same request-then-approve shape as leave, and deliberately the same screen
+// layout, so an employee who has filed a leave request already knows how this
+// one works. Managers reach the same screen for their own missions; approving
+// their team's happens on #team-leaves.
+// =============================================================================
+function renderMissions(container) {
+  const today = _isoToday();
+
+  container.innerHTML = `
+    <div class="view-header">
+      <h1 class="view-title">${t('mission.request')}</h1>
+    </div>
+    <div class="view-content">
+
+      <p class="mission-hint">${t('mission.hint')}</p>
+
+      <div class="card leave-form-card" id="mission-form-card">
+        <form class="leave-form" id="mission-form" novalidate>
+
+          <div class="field">
+            <label class="field-label" for="mission-type">${t('mission.type')}</label>
+            <select class="field-input" id="mission-type" name="mission_type" required>
+              <option value="" disabled selected>${t('mission.type')}</option>
+              <option value="meeting">${t('mission.type_meeting')}</option>
+              <option value="training">${t('mission.type_training')}</option>
+              <option value="site_visit">${t('mission.type_site_visit')}</option>
+              <option value="business_trip">${t('mission.type_business_trip')}</option>
+              <option value="other">${t('mission.type_other')}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="mission-destination">${t('mission.destination')}</label>
+            <input class="field-input" type="text" id="mission-destination"
+                   name="destination" required maxlength="120"
+                   placeholder="${t('mission.destination_placeholder')}">
+          </div>
+
+          <div class="leave-dates-row">
+            <div class="field">
+              <label class="field-label" for="mission-start">${t('leave.start_date')}</label>
+              <input class="field-input" type="date" id="mission-start"
+                     name="start_date" required min="${today}">
+            </div>
+            <div class="field">
+              <label class="field-label" for="mission-end">${t('leave.end_date')}</label>
+              <input class="field-input" type="date" id="mission-end"
+                     name="end_date" required min="${today}">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="mission-reason">${t('mission.details')}</label>
+            <textarea class="field-input leave-reason-input" id="mission-reason"
+                      name="reason" rows="3"
+                      placeholder="${t('mission.details')}"></textarea>
+          </div>
+
+          <div class="leave-form-error" id="mission-error" role="alert" hidden></div>
+
+          <button class="btn btn-primary leave-submit-btn" type="submit" id="mission-submit">
+            ${t('mission.submit')}
+          </button>
+
+        </form>
+      </div>
+
+      <section class="leave-history-section" aria-label="${t('mission.my_title')}">
+        <h2 class="leave-section-title">${t('mission.my_title')}</h2>
+        <ul class="leave-list" id="mission-list">
+          ${_leaveSkeleton(3)}
+        </ul>
+      </section>
+
+    </div>`;
+
+  _bindMissionForm(container);
+  _loadMissionList(container.querySelector('#mission-list'));
+}
+
+function _bindMissionForm(container) {
+  const form      = container.querySelector('#mission-form');
+  const submitBtn = container.querySelector('#mission-submit');
+  const errEl     = container.querySelector('#mission-error');
+  const startInp  = container.querySelector('#mission-start');
+  const endInp    = container.querySelector('#mission-end');
+
+  // Keep end-date min in sync with start selection
+  startInp?.addEventListener('change', () => {
+    if (!endInp) return;
+    const v = startInp.value || _isoToday();
+    endInp.min = v;
+    if (endInp.value && endInp.value < v) endInp.value = v;
+  });
+
+  form?.addEventListener('submit', async e => {
+    e.preventDefault();
+    _hideEl(errEl);
+
+    const type   = form.mission_type.value;
+    const dest   = (form.destination?.value || '').trim();
+    const start  = form.start_date.value;
+    const end    = form.end_date.value;
+    const reason = (form.reason?.value || '').trim();
+
+    if (!type)       { _showErr(errEl, t('error.required_field')); form.mission_type.focus(); return; }
+    if (!dest)       { _showErr(errEl, t('error.required_field')); form.destination?.focus(); return; }
+    if (!start)      { _showErr(errEl, t('error.required_field')); startInp?.focus(); return; }
+    if (!end)        { _showErr(errEl, t('error.required_field')); endInp?.focus(); return; }
+    if (end < start) { _showErr(errEl, t('error.invalid_date'));   endInp?.focus(); return; }
+
+    const defaultLabel = submitBtn?.textContent || t('mission.submit');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t('action.loading'); }
+
+    let result;
+    try { result = await apiSubmitMission(type, start, end, dest, reason); } catch (_) {}
+
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = defaultLabel; }
+
+    if (!result || result.status !== 'ok') {
+      _showErr(errEl, result?.message || t('error.server'));
+      return;
+    }
+
+    const card = container.querySelector('#mission-form-card');
+    if (card) {
+      card.innerHTML = `
+        <div class="leave-success">
+          <div class="leave-success-icon" aria-hidden="true">${_icoCheckCircle()}</div>
+          <p class="leave-success-msg">${t('mission.success_message')}</p>
+          <button class="btn btn-ghost btn-sm" id="mission-new-btn" type="button">
+            ${t('mission.new_request')}
+          </button>
+        </div>`;
+      card.querySelector('#mission-new-btn')
+        ?.addEventListener('click', () => renderMissions(container));
+    }
+
+    _loadMissionList(container.querySelector('#mission-list'));
+    if (typeof showToast === 'function') showToast(t('mission.success_message'), 'success');
+  });
+}
+
+async function _loadMissionList(list) {
+  if (!list) return;
+
+  let result;
+  try { result = await apiGetMyMissions(); } catch (_) {}
+
+  if (!result || result.status !== 'ok') {
+    list.innerHTML = _emptyStateItem('💼', t('mission.no_requests'));
+    return;
+  }
+
+  const requests = (result.data.requests || [])
+    .slice()
+    .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
+
+  if (!requests.length) {
+    list.innerHTML = _emptyStateItem('💼', t('mission.no_requests'));
+    return;
+  }
+
+  list.innerHTML = requests.map(req => _missionRowHTML(req)).join('');
+}
+
+function _missionRowHTML(req) {
+  const badgeMap = {
+    pending:  'badge-pending',
+    approved: 'badge-mission',
+    rejected: 'badge-absent',
+  };
+
+  const typeLabel   = _missionTypeLabel(req.mission_type);
+  const badgeCls    = badgeMap[req.status] || 'badge-pending';
+  const statusLabel = t('status.' + (req.status || 'pending'));
+  const start       = typeof formatDate === 'function'
+    ? formatDate(new Date((req.start_date || '') + 'T00:00:00'))
+    : (req.start_date || '');
+  const end         = typeof formatDate === 'function'
+    ? formatDate(new Date((req.end_date || '') + 'T00:00:00'))
+    : (req.end_date || '');
+  const dateRange   = start === end ? start : `${start} — ${end}`;
+
+  return `
+    <li class="leave-row">
+      <div class="leave-row-info">
+        <span class="leave-row-type">${_escHtml(typeLabel)}</span>
+        <span class="leave-row-dates">${dateRange}</span>
+        ${req.destination
+          ? `<span class="leave-row-reason">📍 ${_escHtml(req.destination)}</span>`
+          : ''}
+        ${req.reason ? `<span class="leave-row-reason">${_escHtml(req.reason)}</span>` : ''}
+      </div>
+      <span class="badge ${badgeCls}">${statusLabel}</span>
+    </li>`;
+}
+
+// Shared by the employee list, the manager queue and the HR table — one place
+// that knows how a stored mission_type becomes a translated label
+function _missionTypeLabel(type) {
+  const keys = {
+    meeting:       'mission.type_meeting',
+    training:      'mission.type_training',
+    site_visit:    'mission.type_site_visit',
+    business_trip: 'mission.type_business_trip',
+    other:         'mission.type_other'
+  };
+  return t(keys[String(type || '').toLowerCase()] || 'mission.type_other');
 }
 
 // =============================================================================
@@ -477,3 +696,4 @@ function _icoBack() {
 window.renderAttendanceHistory = renderAttendanceHistory;
 window.renderLeaveForm         = renderLeaveForm;
 window.renderLeaveBalance      = renderLeaveBalance;
+window.renderMissions          = renderMissions;

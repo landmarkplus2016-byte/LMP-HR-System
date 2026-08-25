@@ -12,11 +12,12 @@
 // report.js turns into an XLSX file entirely client-side.
 //
 // Response shape:
-//   { employees, attendance, leaves, holidays,
+//   { employees, attendance, leaves, missions, holidays,
 //     year, month, days_in_month, working_days }
 //
 //   attendance: { emp_id: [{ date, check_in, check_out, hours_worked, status }] }
 //   leaves:     { emp_id: [{ start_date, end_date, type }] }
+//   missions:   { emp_id: [{ start_date, end_date, mission_type, destination }] }
 //   holidays:   ["YYYY-MM-DD", ...]
 //   working_days: [0,1,2,3,4]  (0=Sun … 6=Sat)
 function getReportData(payload) {
@@ -114,6 +115,27 @@ function getReportData(payload) {
       });
     });
 
+  // ── Approved missions that overlap this month ─────────────────────────────
+  // Same shape as `leaves` so report.js can build both day-sets the same way
+  const missions = {};
+  _missionRows()
+    .filter(function(m) {
+      if (!empIdSet[String(m.employee_id)]) return false;
+      if (String(m.status || '').toLowerCase() !== 'approved') return false;
+      return _normaliseLeaveDate(m.end_date)   >= dateFrom &&
+             _normaliseLeaveDate(m.start_date) <= dateTo;
+    })
+    .forEach(function(m) {
+      const id = String(m.employee_id);
+      if (!missions[id]) missions[id] = [];
+      missions[id].push({
+        start_date:   _normaliseLeaveDate(m.start_date),
+        end_date:     _normaliseLeaveDate(m.end_date),
+        mission_type: String(m.mission_type || ''),
+        destination:  String(m.destination  || '')
+      });
+    });
+
   // ── Company holidays within the month ─────────────────────────────────────
   var holidays = [];
   try {
@@ -144,6 +166,7 @@ function getReportData(payload) {
     employees:     safeEmployees,
     attendance:    attendance,
     leaves:        leaves,
+    missions:      missions,
     holidays:      holidays,
     year:          year,
     month:         month,

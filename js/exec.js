@@ -207,12 +207,20 @@ function _execSummaryCards(s) {
       </button>`;
   };
 
+  // The mission card appears only when somebody is out on duty — on a normal
+  // day the grid stays the four states an executive actually scans for
+  const hasMissions = Number(s.on_mission) > 0;
+
   return `
-    <div class="exec-summary-grid" role="group" aria-label="${t('exec.company_today')}">
+    <div class="exec-summary-grid${hasMissions ? ' exec-summary-grid-5' : ''}"
+         role="group" aria-label="${t('exec.company_today')}">
       ${card(s.present,  t('team.present_count'), 'present', 'present')}
       ${card(s.absent,   t('team.absent_count'),  'absent',  'absent')}
       ${card(s.late,     t('team.late_count'),    'late',    'late')}
       ${card(s.on_leave, t('team.leave_count'),   'leave',   'on_leave')}
+      ${hasMissions
+        ? card(s.on_mission, t('team.mission_count'), 'mission', 'on_mission')
+        : ''}
     </div>`;
 }
 
@@ -281,7 +289,7 @@ function _execListRow(m) {
       <span class="mgr-avatar" aria-hidden="true">${_execEsc(initials)}</span>
       <span class="mgr-member-info">
         <span class="mgr-member-name">${_execEsc(m.name)}</span>
-        <span class="mgr-member-dept exec-list-sub">${_execEsc(m.department || t('exec.no_department'))} · ${_execEsc(t('exec.reports_to'))} ${_execEsc(under)}</span>
+        <span class="mgr-member-dept exec-list-sub">${_execEsc(m.department || t('exec.no_department'))} · ${_execEsc(t('exec.reports_to'))} ${_execEsc(under)}${m.destination ? ` · 📍 ${_execEsc(m.destination)}` : ''}</span>
       </span>
       <span class="mgr-member-right">
         ${timeStr ? `<span class="mgr-member-time">${_execEsc(timeStr)}</span>` : ''}
@@ -308,11 +316,12 @@ function _execAllMembers(data) {
     seen.add(id);
     out.push({
       id:           id,
-      name:         String(m.name       || ''),
-      department:   String(m.department || ''),
-      status:       String(m.status     || 'absent').toLowerCase(),
-      check_in:     String(m.check_in   || ''),
-      manager_name: String(managerName  || '')
+      name:         String(m.name        || ''),
+      department:   String(m.department  || ''),
+      status:       String(m.status      || 'absent').toLowerCase(),
+      check_in:     String(m.check_in    || ''),
+      destination:  String(m.destination || ''),
+      manager_name: String(managerName   || '')
     });
   };
 
@@ -394,9 +403,10 @@ function _execUnassignedCard(u) {
 // — so a healthy team stays visually quiet and a problem team stands out
 function _execCounts(s) {
   const chips = [];
-  if (s.late)     chips.push(`<span class="exec-chip exec-chip-late">${s.late} ${_execEsc(t('status.late'))}</span>`);
-  if (s.absent)   chips.push(`<span class="exec-chip exec-chip-absent">${s.absent} ${_execEsc(t('status.absent'))}</span>`);
-  if (s.on_leave) chips.push(`<span class="exec-chip exec-chip-leave">${s.on_leave} ${_execEsc(t('status.on_leave'))}</span>`);
+  if (s.late)       chips.push(`<span class="exec-chip exec-chip-late">${s.late} ${_execEsc(t('status.late'))}</span>`);
+  if (s.absent)     chips.push(`<span class="exec-chip exec-chip-absent">${s.absent} ${_execEsc(t('status.absent'))}</span>`);
+  if (s.on_leave)   chips.push(`<span class="exec-chip exec-chip-leave">${s.on_leave} ${_execEsc(t('status.on_leave'))}</span>`);
+  if (s.on_mission) chips.push(`<span class="exec-chip exec-chip-mission">${s.on_mission} ${_execEsc(t('status.on_mission'))}</span>`);
 
   return `
     <span class="exec-group-counts">
@@ -485,19 +495,21 @@ function _execRefreshLabel() {
 
 function _execBadgeClass(status) {
   return {
-    present:  'badge-present',
-    late:     'badge-late',
-    absent:   'badge-absent',
-    on_leave: 'badge-leave'
+    present:    'badge-present',
+    late:       'badge-late',
+    absent:     'badge-absent',
+    on_leave:   'badge-leave',
+    on_mission: 'badge-mission'
   }[String(status).toLowerCase()] || 'badge-absent';
 }
 
 function _execStatusLabel(status) {
   return {
-    present:  t('status.present'),
-    late:     t('status.late'),
-    absent:   t('status.absent'),
-    on_leave: t('status.on_leave')
+    present:    t('status.present'),
+    late:       t('status.late'),
+    absent:     t('status.absent'),
+    on_leave:   t('status.on_leave'),
+    on_mission: t('status.on_mission')
   }[String(status).toLowerCase()] || String(status);
 }
 

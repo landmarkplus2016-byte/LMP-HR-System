@@ -42,7 +42,8 @@ function generateReport(data, year, month) {
     t('reports.col_total_absent'),
     t('reports.col_total_late'),
     t('reports.col_total_hours'),
-    t('reports.col_leave_days')
+    t('reports.col_leave_days'),
+    t('reports.col_mission_days')
   );
 
   // ── Data rows, one per employee ────────────────────────────────────────────
@@ -76,9 +77,29 @@ function generateReport(data, year, month) {
       }
     });
 
+    // Same for approved missions. `missions` is absent from responses produced
+    // by a Web App deployed before the feature — an older server must degrade
+    // to a report with no M codes, not throw halfway through the workbook.
+    const missionSet = new Set();
+    ((data.missions || {})[emp.id] || []).forEach(function(ms) {
+      const startDt = new Date(ms.start_date + 'T00:00:00');
+      const endDt   = new Date(ms.end_date   + 'T00:00:00');
+      for (
+        var cur = new Date(startDt);
+        cur <= endDt;
+        cur.setDate(cur.getDate() + 1)
+      ) {
+        const iso =
+          cur.getFullYear() + '-' +
+          String(cur.getMonth() + 1).padStart(2, '0') + '-' +
+          String(cur.getDate()).padStart(2, '0');
+        if (iso >= yyyy + '-' + mm + '-01') missionSet.add(iso);
+      }
+    });
+
     // Per-day status codes
     let totPresent = 0, totAbsent = 0, totLate = 0;
-    let totHours   = 0, totLeave  = 0;
+    let totHours   = 0, totLeave  = 0, totMission = 0;
     const dayCodes = [];
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -87,6 +108,7 @@ function generateReport(data, year, month) {
       const isHol   = holidaySet.has(dateStr);
       const isWork  = workingSet.has(dow);
       const isLeave = leaveSet.has(dateStr);
+      const isMsn   = missionSet.has(dateStr);
       const rec     = attMap[dateStr];
 
       let code;
@@ -112,8 +134,14 @@ function generateReport(data, year, month) {
         }
         const h = parseFloat(rec.hours_worked);
         if (!isNaN(h) && h > 0) totHours += h;
+      } else if (isMsn) {
+        // Approved off-site duty — worked, just not at a company location.
+        // Ranks below a real check-in so someone who made it in on a mission
+        // day still counts as present, and counts as neither present nor absent.
+        code = 'M';
+        totMission++;
       } else {
-        // Working day with no record, no leave, no holiday → absent
+        // Working day with no record, no leave, no mission, no holiday → absent
         code = 'A';
         totAbsent++;
       }
@@ -130,6 +158,7 @@ function generateReport(data, year, month) {
       totLate,
       Math.round(totHours * 100) / 100,
       totLeave,
+      totMission,
     ]);
   }
 
@@ -137,11 +166,11 @@ function generateReport(data, year, month) {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  // Column widths: Name, Dept, then one per day, then 5 totals
+  // Column widths: Name, Dept, then one per day, then 6 totals
   const colWidths = [{ wch: 26 }, { wch: 18 }];
   for (let d = 0; d < daysInMonth; d++) colWidths.push({ wch: 4.5 });
   colWidths.push(
-    { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 11 }, { wch: 9 }
+    { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 11 }, { wch: 9 }, { wch: 11 }
   );
   ws['!cols'] = colWidths;
 
@@ -180,12 +209,13 @@ function _styleReportSheet(ws, daysInMonth, totalRows) {
     'L':  ['FEF3C7', '92400E'],
     'A':  ['FEE2E2', '991B1B'],
     'Lv': ['CFFAFE', '155E75'],
+    'M':  ['EDE9FE', '5B21B6'], // violet — matches the On Mission badge in the app
     'H':  ['F3E8FF', '6B21A8'],
     '—':  [null,     'CBD5E1'],
   };
 
   const totalColStart = 2 + daysInMonth; // 0-indexed column of first totals column
-  const numCols       = totalColStart + 5;
+  const numCols       = totalColStart + 6;
 
   for (let r = 0; r < totalRows; r++) {
     for (let c = 0; c < numCols; c++) {

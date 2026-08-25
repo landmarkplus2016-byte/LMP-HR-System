@@ -42,6 +42,8 @@
     "config": "الإعدادات",
     "history": "سجلّاتي",
     "leave": "طلب إجازة",
+    "missions": "المأموريات",
+    "approvals": "الموافقات",
     "team": "فريقي",
     "org": "حالة الشركة",
     "signout": "تسجيل الخروج",
@@ -170,6 +172,30 @@
     "balances_unavailable": "أرصدة الإجازات غير متاحة بعد — يلزم إعادة نشر تطبيق Apps Script بأحدث إصدار."
   },
 
+  "mission": {
+    "title": "المأموريات",
+    "my_title": "مأمورياتي",
+    "request": "طلب مأمورية",
+    "hint": "المأمورية هي عمل رسمي خارج مقر الشركة — اجتماع مع عميل أو تدريب أو زيارة موقع. المأمورية المعتمدة تعني عدم احتساب هذا اليوم غيابًا.",
+    "hr_hint": "المأموريات المعتمدة تحل محل الغياب في الأيام التي تغطيها",
+    "type": "نوع المأمورية",
+    "type_meeting": "اجتماع",
+    "type_training": "تدريب",
+    "type_site_visit": "زيارة موقع",
+    "type_business_trip": "سفر عمل",
+    "type_other": "أخرى",
+    "destination": "جهة المأمورية",
+    "destination_placeholder": "مثال: مكتب العميل، القاهرة الجديدة",
+    "details": "التفاصيل",
+    "submit": "إرسال الطلب",
+    "new_request": "طلب جديد",
+    "no_requests": "لا توجد مأموريات",
+    "success_message": "تم إرسال طلب المأمورية بنجاح",
+    "add": "إضافة مأمورية",
+    "added": "تم تسجيل المأمورية بنجاح",
+    "days_this_year": "أيام المأمورية هذا العام"
+  },
+
   "team": {
     "title": "فريقي",
     "status_today": "حالة الفريق اليوم",
@@ -178,6 +204,7 @@
     "absent_count": "غائب",
     "late_count": "متأخر",
     "leave_count": "في إجازة",
+    "mission_count": "في مأمورية",
     "live": "مباشر",
     "attendance_title": "حضور الفريق",
     "my_attendance": "حضوري",
@@ -192,6 +219,7 @@
     "present_today": "الحاضرون اليوم",
     "absent_today": "الغائبون اليوم",
     "on_leave": "في إجازة",
+    "on_mission": "في مأمورية",
     "late_today": "المتأخرون",
     "recent_activity": "آخر الأنشطة"
   },
@@ -313,7 +341,8 @@
     "col_total_absent": "إجمالي الغياب",
     "col_total_late": "إجمالي التأخير",
     "col_total_hours": "إجمالي الساعات",
-    "col_leave_days": "أيام الإجازة"
+    "col_leave_days": "أيام الإجازة",
+    "col_mission_days": "أيام المأمورية"
   },
 
   "integrity": {
@@ -368,6 +397,7 @@
     "absent": "غائب",
     "late": "متأخر",
     "on_leave": "في إجازة",
+    "on_mission": "في مأمورية",
     "holiday": "عطلة رسمية",
     "pending": "قيد الانتظار",
     "approved": "موافق عليه",

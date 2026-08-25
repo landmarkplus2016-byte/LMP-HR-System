@@ -135,6 +135,14 @@ function route(action, payload) {
     case 'approve_leave':                return approveLeave(payload);
     case 'reject_leave':                 return rejectLeave(payload);
 
+    // ── Missions — off-site duty (Stage 8) ───────────────────────────────
+    case 'submit_mission':               return submitMission(payload);
+    case 'get_my_missions':              return getMyMissions(payload);
+    case 'get_team_missions':            return getTeamMissions(payload);
+    case 'approve_mission':              return approveMission(payload);
+    case 'reject_mission':               return rejectMission(payload);
+    case 'add_mission':                  return addMission(payload);
+
     // ── Reports (Stage 5) ─────────────────────────────────────────────────
     case 'get_report_data':              return getReportData(payload);
 

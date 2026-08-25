@@ -35,9 +35,9 @@ A GPS-verified, biometric employee attendance PWA for Landmark Plus.
 
 | Role value | Device | Navigation | Key permissions |
 |---|---|---|---|
-| `employee` | Mobile | Bottom tab bar | Check in/out, own attendance history, leave requests |
-| `manager` | Mobile or desktop | Bottom tabs / sidebar | Team live status, leave approvals, team attendance records — **plus their own check-in and leave requests**, same as an employee |
-| `hr` | Desktop (laptop) | Left sidebar — 12 screens | Full company dashboard, employee management, all admin screens, reports |
+| `employee` | Mobile | Bottom tab bar | Check in/out, own attendance history, leave requests, mission requests |
+| `manager` | Mobile or desktop | Bottom tabs / sidebar | Team live status, leave **and mission** approvals, team attendance records — **plus their own check-in, leave and mission requests**, same as an employee |
+| `hr` | Desktop (laptop) | Left sidebar — 13 screens | Full company dashboard, employee management, all admin screens, missions, reports |
 | `ceo` | Desktop | Two screens | Company status grouped by manager (read-only) + leave approvals for their own direct reports |
 | `md` | Desktop | Two screens | Identical to `ceo` — same permission group, separate title |
 | Developer (you) | — | Google Sheet + Apps Script | Only person with Sheet access — everyone else uses the PWA |
@@ -92,8 +92,8 @@ lmp-attendance/
 │   ├── security.js             # Device ID generation and tracking
 │   ├── attendance.js           # Check-in / check-out UI logic and flow orchestration
 │   ├── offline.js              # IndexedDB offline queue, background sync retry
-│   ├── employee.js             # Employee-only views: history, leave request form, leave balance
-│   ├── manager.js              # Manager views: team live status, leave approvals, team records
+│   ├── employee.js             # Employee-only views: history, leave request form, leave balance, missions
+│   ├── manager.js              # Manager views: team live status, leave + mission approvals, team records
 │   ├── exec.js                 # CEO / MD views: company status grouped by manager + leave approvals for direct reports
 │   ├── hr.js                   # HR desktop views: dashboard, all admin screens, report generation
 │   ├── report.js               # SheetJS client-side Excel report generation
@@ -117,6 +117,7 @@ lmp-attendance/
 │   ├── Attendance.gs           # checkIn(), checkOut(), getAttendance(), correctAttendance(), addManual()
 │   ├── Employees.gs            # getEmployees(), addEmployee(), updateEmployee(), deactivate(), reactivate()
 │   ├── Leaves.gs               # submitLeave(), approveLeave(), rejectLeave(), getLeaves()
+│   ├── Missions.gs             # Off-site duty — submitMission(), approveMission(), rejectMission(), addMission()
 │   ├── Locations.gs            # getLocations(), addLocation(), updateLocation(), toggleLocation()
 │   ├── Admin.gs                # Shifts, Departments, Holidays, Config CRUD
 │   ├── Report.gs               # getReportData() — structured data for SheetJS export
@@ -316,6 +317,50 @@ departments.*, holidays.*, config.*, reports.*, error.*,
 gps.*, biometric.*, sync.*, offline.*, update.*, date.*, time.*
 ```
 
+### Missions — off-site duty (`appscript/Missions.gs`)
+
+A mission is what stops an employee being counted **Absent** on a day they were
+working, just not at a company location — a client meeting, training, site visit
+or business trip.
+
+It is deliberately built as a near twin of a leave request: same
+pending → approved/rejected lifecycle, same direct-report approval scoping, same
+screen layout. HR and managers already know how leave behaves, and a second,
+different workflow would only be another thing to learn.
+
+**A mission is a status, not a check-in.** There is no GPS, no fingerprint and
+no hours recorded. `Missions.gs` never writes to the Attendance tab and must
+never gain a check-in path — an approved mission that let someone check in from
+anywhere would be a hole straight through the geofence gate.
+
+**Status precedence — `getTeamStatus`, `getOrgStatus` and `report.js` all apply
+the same order:**
+
+```
+holiday  →  leave  →  real check-in record  →  mission  →  absent
+```
+
+A mission ranks *below* a real check-in on purpose. Somebody who was booked on a
+mission but made it into the office is genuinely Present, and is reported that
+way. A mission therefore only ever replaces an Absent — it never overrides
+attendance that actually happened.
+
+**Rules for this feature:**
+- Missions count as neither present nor absent in the monthly report. They get
+  their own `M` day code and their own **Mission Days** total column, so a month
+  with heavy travel neither inflates attendance nor manufactures absence
+- An employee cannot back-date their own mission — that would let anyone erase
+  an absence after the fact. `add_mission` (HR only) is the sole path that may,
+  because HR recording a trip they were told about late is the point of it
+- A day cannot be both leave and a mission. `_missionConflict` refuses the
+  second request rather than silently letting one win
+- `_missionRows()` returns `[]` when the Missions tab does not exist, so live
+  status, the executive org screen and the monthly report degrade to "nobody is
+  on a mission" instead of breaking for everyone. Write paths call `getSheet`
+  directly so a genuinely missing tab surfaces where it matters
+- HR, CEO and MD cannot file missions — `isAttendingRole()` excludes them, so
+  they are never marked absent and have nothing to correct
+
 ### Device ID (`js/security.js`)
 - Generated once on first install: hash of `navigator.userAgent + screen.width + screen.height + timezone`
 - Stored in `localStorage` as `lmp_device_id`
@@ -383,11 +428,19 @@ phones and the same building.
 | `Attendance` | All check-in/check-out records | Apps Script (employees + HR corrections) |
 | `AttendanceLog` | Audit trail — every HR correction with original values | Apps Script (append-only) |
 | `Leaves` | Leave requests and approval status | Apps Script (all roles) |
+| `Missions` | Off-site duty requests and approval status | Apps Script (all roles) |
 | `Holidays` | Company holiday dates | Apps Script (HR via PWA) |
 | `Sessions` | Active login tokens — auto-cleaned nightly | Apps Script only |
 
 ### Employees Tab Columns (full reference)
 `id | name | username | password_hash | force_password_change | role | department | shift_id | manager_id | active | biometric_exempt | webauthn_credential_id | webauthn_public_key | webauthn_registered_at | device_id`
+
+### Missions Tab Columns (full reference)
+`id | employee_id | mission_type | start_date | end_date | destination | reason | status | approved_by | approved_at | reject_reason | created_at`
+
+`mission_type` is one of `meeting | training | site_visit | business_trip | other`.
+`status` is one of `pending | approved | rejected`. Only **approved** missions
+affect any attendance figure.
 
 ### Attendance Tab Columns (full reference)
 `id | employee_id | date | check_in | check_out | hours_worked | location_id | lat | lng | accuracy | biometric_verified | biometric_method | device_id | device_match | status | notes | corrected_by | corrected_at`
@@ -422,6 +475,12 @@ All calls are POST to the Web App URL. Every call (except `login` and `get_confi
 | `get_team_leaves` | Manager/CEO/MD/HR | Pending leave requests. Manager and executives get direct reports only; HR gets all statuses company-wide |
 | `approve_leave` | Manager/CEO/MD/HR | Update leave status → approved. Non-HR callers restricted to direct reports |
 | `reject_leave` | Manager/CEO/MD/HR | Update leave status → rejected. Non-HR callers restricted to direct reports |
+| `submit_mission` | Employee/Manager | Request off-site duty. Attending roles only, cannot be back-dated |
+| `get_my_missions` | Employee/Manager | Own mission history + approved days this year |
+| `get_team_missions` | Manager/CEO/MD/HR | Pending for direct reports; HR gets every mission, all statuses |
+| `approve_mission` | Manager/CEO/MD/HR | Update mission status → approved. Non-HR callers restricted to direct reports |
+| `reject_mission` | Manager/CEO/MD/HR | Update mission status → rejected. Non-HR callers restricted to direct reports |
+| `add_mission` | HR | Record a mission directly, pre-approved — the only path that may back-date |
 | `get_all_attendance` | HR | All attendance, filterable by employee + date range |
 | `correct_attendance` | HR | Edit record → write original to AttendanceLog → update Attendance |
 | `add_manual_attendance` | HR | Insert manual record with required HR note |

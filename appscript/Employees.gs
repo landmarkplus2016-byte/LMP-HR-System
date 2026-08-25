@@ -76,17 +76,26 @@ function getTeamStatus(payload) {
     }
   });
 
+  // Approved off-site duty covering today — this is what keeps someone working
+  // away from the office out of the Absent count
+  const missionMap = _approvedMissionMap(today);
+
   const members = teamMembers.map(emp => {
     const id  = String(emp.id);
     const rec = attMap[id];
     const lv  = leaveMap[id];
+    const ms  = missionMap[id];
 
     let status       = 'absent';
     let check_in     = '';
     let check_out    = '';
     let hours_worked = '';
     let location_id  = '';
+    let mission      = null;
 
+    // Precedence: leave, then a real check-in, then mission. A mission only
+    // ever replaces an Absent — somebody who made it into the office on a
+    // mission day is genuinely Present and is reported that way.
     if (lv) {
       status = 'on_leave';
     } else if (rec) {
@@ -95,6 +104,12 @@ function getTeamStatus(payload) {
       check_out    = String(rec.check_out    || '');
       hours_worked = String(rec.hours_worked || '');
       location_id  = String(rec.location_id  || '');
+    } else if (ms) {
+      status  = 'on_mission';
+      mission = {
+        mission_type: String(ms.mission_type || ''),
+        destination:  String(ms.destination  || '')
+      };
     }
 
     return {
@@ -109,16 +124,18 @@ function getTeamStatus(payload) {
       check_in,
       check_out,
       hours_worked,
-      location_id
+      location_id,
+      mission
     };
   });
 
   const summary = {
-    present:  members.filter(m => m.status === 'present').length,
-    late:     members.filter(m => m.status === 'late').length,
-    absent:   members.filter(m => m.status === 'absent').length,
-    on_leave: members.filter(m => m.status === 'on_leave').length,
-    total:    members.length
+    present:    members.filter(m => m.status === 'present').length,
+    late:       members.filter(m => m.status === 'late').length,
+    absent:     members.filter(m => m.status === 'absent').length,
+    on_leave:   members.filter(m => m.status === 'on_leave').length,
+    on_mission: members.filter(m => m.status === 'on_mission').length,
+    total:      members.length
   };
 
   return ok({ date: today, members, summary });
@@ -168,28 +185,38 @@ function getTeamAttendance(payload) {
       String(a.employee_name).localeCompare(String(b.employee_name))
     );
 
-  // Synthesise absent rows for team members with no record that day
+  // Synthesise rows for team members with no record that day.
+  //
+  // An approved mission makes that synthesised row `on_mission` rather than
+  // `absent` — this screen is the per-date view a manager checks, so leaving it
+  // saying Absent would undo the whole point of recording the mission. The
+  // destination rides along in `notes` so the existing table shows it with no
+  // extra column.
+  const missionMap  = _approvedMissionMap(date);
   const recordedIds = new Set(records.map(r => String(r.employee_id)));
-  const absentRows = teamMembers
+  const syntheticRows = teamMembers
     .filter(e => !recordedIds.has(String(e.id)))
-    .map(e => ({
-      id:            '',
-      employee_id:   String(e.id),
-      employee_name: nameMap[String(e.id)] || '',
-      date,
-      check_in:      '',
-      check_out:     '',
-      hours_worked:  '',
-      status:        'absent',
-      location_id:   '',
-      biometric_verified: '',
-      device_match:  '',
-      notes:         '',
-      corrected_by:  '',
-      corrected_at:  ''
-    }));
+    .map(e => {
+      const ms = missionMap[String(e.id)];
+      return {
+        id:            '',
+        employee_id:   String(e.id),
+        employee_name: nameMap[String(e.id)] || '',
+        date,
+        check_in:      '',
+        check_out:     '',
+        hours_worked:  '',
+        status:        ms ? 'on_mission' : 'absent',
+        location_id:   '',
+        biometric_verified: '',
+        device_match:  '',
+        notes:         ms ? String(ms.destination || '') : '',
+        corrected_by:  '',
+        corrected_at:  ''
+      };
+    });
 
-  return ok({ date, records: [...records, ...absentRows] });
+  return ok({ date, records: [...records, ...syntheticRows] });
 }
 
 // =============================================================================
@@ -499,7 +526,11 @@ function getOrgStatus(payload) {
     }
   });
 
-  const members = workforce.map(emp => _orgMemberRow(emp, attMap, leaveMap));
+  // Approved off-site duty covering today — keeps travelling staff out of the
+  // executive Absent count
+  const missionMap = _approvedMissionMap(today);
+
+  const members = workforce.map(emp => _orgMemberRow(emp, attMap, leaveMap, missionMap));
 
   // id → member, so a manager's own status can be shown on their group header.
   // Attending workforce only — these are the rows that carry attendance.
@@ -562,15 +593,19 @@ function getOrgStatus(payload) {
   });
 }
 
-// Private: today's status for one employee, in the shape the org screen wants
-function _orgMemberRow(emp, attMap, leaveMap) {
+// Private: today's status for one employee, in the shape the org screen wants.
+// Precedence matches getTeamStatus: leave, then a real check-in, then mission —
+// a mission only ever replaces an Absent.
+function _orgMemberRow(emp, attMap, leaveMap, missionMap) {
   const id  = String(emp.id);
   const rec = attMap[id];
   const lv  = leaveMap[id];
+  const ms  = (missionMap || {})[id];
 
-  let status    = 'absent';
-  let check_in  = '';
-  let check_out = '';
+  let status      = 'absent';
+  let check_in    = '';
+  let check_out   = '';
+  let destination = '';
 
   if (lv) {
     status = 'on_leave';
@@ -578,6 +613,9 @@ function _orgMemberRow(emp, attMap, leaveMap) {
     status    = String(rec.status    || 'present').toLowerCase();
     check_in  = String(rec.check_in  || '');
     check_out = String(rec.check_out || '');
+  } else if (ms) {
+    status      = 'on_mission';
+    destination = String(ms.destination || '');
   }
 
   return {
@@ -588,17 +626,19 @@ function _orgMemberRow(emp, attMap, leaveMap) {
     manager_id: String(emp.manager_id || ''),
     status,
     check_in,
-    check_out
+    check_out,
+    destination
   };
 }
 
 // Private: count statuses across a list of org member rows
 function _orgSummary(rows) {
   return {
-    present:  rows.filter(m => m.status === 'present').length,
-    late:     rows.filter(m => m.status === 'late').length,
-    absent:   rows.filter(m => m.status === 'absent').length,
-    on_leave: rows.filter(m => m.status === 'on_leave').length,
-    total:    rows.length
+    present:    rows.filter(m => m.status === 'present').length,
+    late:       rows.filter(m => m.status === 'late').length,
+    absent:     rows.filter(m => m.status === 'absent').length,
+    on_leave:   rows.filter(m => m.status === 'on_leave').length,
+    on_mission: rows.filter(m => m.status === 'on_mission').length,
+    total:      rows.length
   };
 }

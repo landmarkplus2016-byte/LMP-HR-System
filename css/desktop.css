@@ -362,6 +362,7 @@
   .stat-card-absent  { border-inline-start-color: var(--c-absent);  }
   .stat-card-late    { border-inline-start-color: var(--c-late);    }
   .stat-card-leave   { border-inline-start-color: var(--c-leave);   }
+  .stat-card-mission { border-inline-start-color: var(--c-mission); }
 
   /* Default — no accent when not status-typed */
   .stat-card:not([class*="stat-card-"]) {
@@ -399,6 +400,7 @@
   .stat-icon-absent  { background: var(--c-absent-bg);  color: var(--c-absent);  }
   .stat-icon-late    { background: var(--c-late-bg);    color: var(--c-late);    }
   .stat-icon-leave   { background: var(--c-leave-bg);   color: var(--c-leave);   }
+  .stat-icon-mission { background: var(--c-mission-bg); color: var(--c-mission); }
 
   .stat-card-value {
     font-size: 1.75rem;
@@ -412,6 +414,7 @@
   .stat-card-value.stat-absent  { color: var(--c-absent);  }
   .stat-card-value.stat-late    { color: var(--c-late);    }
   .stat-card-value.stat-leave   { color: var(--c-leave);   }
+  .stat-card-value.stat-mission { color: var(--c-mission); }
 
   /* ── Activity feed (HR dashboard recent check-ins) ────────────────────────── */
   .activity-card {

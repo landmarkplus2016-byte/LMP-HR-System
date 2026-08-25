@@ -105,13 +105,14 @@ async function _fetchAndRenderDashboard() {
     ? attendanceRes.data.records
     : [];
 
-  const counts = { present: 0, absent: 0, late: 0, on_leave: 0 };
+  const counts = { present: 0, absent: 0, late: 0, on_leave: 0, on_mission: 0 };
   for (const rec of records) {
     const s = (rec.status || '').toLowerCase();
     if      (s === 'present')              counts.present++;
     else if (s === 'absent')               counts.absent++;
     else if (s === 'late')                 counts.late++;
     else if (s === 'leave' || s === 'on_leave') counts.on_leave++;
+    else if (s === 'on_mission')           counts.on_mission++;
   }
 
   // ── Parse pending leave requests ───────────────────────────────────────────
@@ -136,6 +137,11 @@ async function _fetchAndRenderDashboard() {
       _statCard(t('hr.absent_today'),  counts.absent,  'absent'),
       _statCard(t('hr.late_today'),    counts.late,    'late'),
       _statCard(t('hr.on_leave'),      counts.on_leave,'leave'),
+      // Only on days somebody is actually out on duty — a permanent zero tile
+      // would just dilute the four numbers HR checks every morning
+      counts.on_mission > 0
+        ? _statCard(t('hr.on_mission'), counts.on_mission, 'mission')
+        : '',
     ].join('');
   }
 
@@ -170,6 +176,7 @@ function _statCard(label, value, type) {
     absent:  `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>`,
     late:    `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>`,
     leave:   `<path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>`,
+    mission: `<path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/>`,
   };
   const icon = iconPaths[type] || '';
 
@@ -215,19 +222,21 @@ function _activityRow(record) {
     .toUpperCase() || '?';
 
   const badgeClass = {
-    present:  'badge-present',
-    late:     'badge-late',
-    absent:   'badge-absent',
-    leave:    'badge-leave',
-    on_leave: 'badge-leave',
+    present:    'badge-present',
+    late:       'badge-late',
+    absent:     'badge-absent',
+    leave:      'badge-leave',
+    on_leave:   'badge-leave',
+    on_mission: 'badge-mission',
   }[status] || 'badge-pending';
 
   const badgeLabel = {
-    present:  t('status.present'),
-    late:     t('status.late'),
-    absent:   t('status.absent'),
-    leave:    t('status.on_leave'),
-    on_leave: t('status.on_leave'),
+    present:    t('status.present'),
+    late:       t('status.late'),
+    absent:     t('status.absent'),
+    leave:      t('status.on_leave'),
+    on_leave:   t('status.on_leave'),
+    on_mission: t('status.on_mission'),
   }[status] || t('status.present');
 
   return `
@@ -434,10 +443,12 @@ function _liveRow(member) {
   const badgeMap = {
     present:  'badge-present', late: 'badge-late',
     absent:   'badge-absent',  on_leave: 'badge-leave',
+    on_mission: 'badge-mission',
   };
   const labelMap = {
     present:  t('status.present'), late: t('status.late'),
     absent:   t('status.absent'),  on_leave: t('status.on_leave'),
+    on_mission: t('status.on_mission'),
   };
 
   return `
@@ -665,10 +676,12 @@ function _attRow(rec) {
   const badgeMap = {
     present: 'badge-present', late: 'badge-late',
     absent:  'badge-absent',  leave: 'badge-leave', on_leave: 'badge-leave',
+    on_mission: 'badge-mission',
   };
   const labelMap = {
     present:  t('status.present'), late: t('status.late'),
     absent:   t('status.absent'),  leave: t('status.on_leave'), on_leave: t('status.on_leave'),
+    on_mission: t('status.on_mission'),
   };
 
   // Biometric verified column: ✓ green | exempt label | empty
@@ -820,10 +833,12 @@ function _renderRecordDetail(rec) {
   const badgeMap = {
     present: 'badge-present', late: 'badge-late',
     absent:  'badge-absent',  leave: 'badge-leave', on_leave: 'badge-leave',
+    on_mission: 'badge-mission',
   };
   const labelMap = {
     present:  t('status.present'), late: t('status.late'),
     absent:   t('status.absent'),  leave: t('status.on_leave'), on_leave: t('status.on_leave'),
+    on_mission: t('status.on_mission'),
   };
 
   const devMismatch = String(rec.device_match || '').toUpperCase() === 'FALSE' && rec.device_id;
@@ -910,10 +925,11 @@ function _renderRecordDetail(rec) {
 }
 
 function _renderCorrectionForm(rec) {
-  const statusOptions = ['present', 'late', 'absent', 'on_leave'].map(function(s) {
+  const statusOptions = ['present', 'late', 'absent', 'on_leave', 'on_mission'].map(function(s) {
     const labels = {
       present: t('status.present'), late: t('status.late'),
       absent:  t('status.absent'),  on_leave: t('status.on_leave'),
+      on_mission: t('status.on_mission'),
     };
     const sel = (rec.status || '').toLowerCase() === s ? ' selected' : '';
     return `<option value="${s}"${sel}>${labels[s]}</option>`;
@@ -3791,4 +3807,320 @@ function _integrityEvidence(samples) {
         <tbody>${rows}</tbody>
       </table>
     </div>`;
+}
+
+// =============================================================================
+// MISSIONS SCREEN — HR
+//
+// Every mission in the company at every status, with the same approve/reject
+// controls the managers have plus the ability to record one directly. HR needs
+// that direct path because a trip is often only reported after the traveller is
+// already back, and an employee cannot back-date their own mission.
+// =============================================================================
+
+let _msnAllRecords = [], _msnStatusFilter = '';
+
+async function renderHRMissions(container) {
+  _cancelLiveTimer();
+  _msnAllRecords   = [];
+  _msnStatusFilter = '';
+
+  container.innerHTML = `
+    <div class="view-content">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">${t('mission.title')}</h1>
+          <p class="dashboard-date">${t('mission.hr_hint')}</p>
+        </div>
+        <button class="btn btn-primary" id="msn-add-btn" type="button">
+          ${t('mission.add')}
+        </button>
+      </div>
+
+      <div class="data-table-wrap">
+        <div class="table-toolbar">
+          <div class="filter-tabs" id="msn-filter-tabs" role="tablist">
+            <button class="filter-tab active" data-status=""         role="tab" aria-selected="true">${t('leave.filter_all')}</button>
+            <button class="filter-tab"         data-status="pending"  role="tab" aria-selected="false">${t('leave.pending')}</button>
+            <button class="filter-tab"         data-status="approved" role="tab" aria-selected="false">${t('status.approved')}</button>
+            <button class="filter-tab"         data-status="rejected" role="tab" aria-selected="false">${t('status.rejected')}</button>
+          </div>
+          <div class="table-toolbar-actions">
+            <input type="search" class="table-toolbar-search" id="msn-search"
+                   placeholder="${t('action.search')}" autocomplete="off">
+            <span class="count-badge" id="msn-count">—</span>
+          </div>
+        </div>
+
+        <table class="data-table" id="msn-table">
+          <thead>
+            <tr>
+              <th>${t('employees.name')}</th>
+              <th>${t('employees.department')}</th>
+              <th>${t('mission.type')}</th>
+              <th>${t('mission.destination')}</th>
+              <th>${t('date.from')}</th>
+              <th>${t('date.to')}</th>
+              <th>${t('leave.days')}</th>
+              <th>${t('mission.details')}</th>
+              <th>${t('attendance.status')}</th>
+              <th>${t('action.actions')}</th>
+            </tr>
+          </thead>
+          <tbody id="msn-tbody">${_skeletonTableRows(6, 10)}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="msn-modal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="msn-modal-title">
+        <div class="modal-hd">
+          <span class="modal-title" id="msn-modal-title">${t('mission.add')}</span>
+          <button class="btn-icon" id="msn-modal-close" type="button" aria-label="${t('action.close')}">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-bd" id="msn-modal-bd"></div>
+        <div class="modal-ft">
+          <button class="btn btn-primary" id="msn-save-btn" type="button">${t('action.save')}</button>
+          <button class="btn btn-ghost"   id="msn-cancel-btn" type="button">${t('action.cancel')}</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('msn-add-btn')?.addEventListener('click', _openMissionModal);
+  document.getElementById('msn-modal-close')?.addEventListener('click', _closeMissionModal);
+  document.getElementById('msn-cancel-btn')?.addEventListener('click', _closeMissionModal);
+  document.getElementById('msn-save-btn')?.addEventListener('click', _saveHRMission);
+
+  document.getElementById('msn-filter-tabs')?.addEventListener('click', function(e) {
+    const tab = e.target.closest('[data-status]');
+    if (!tab) return;
+    document.querySelectorAll('#msn-filter-tabs .filter-tab').forEach(function(b) {
+      b.classList.toggle('active', b === tab);
+      b.setAttribute('aria-selected', String(b === tab));
+    });
+    _msnStatusFilter = tab.dataset.status;
+    _renderMissionTable((document.getElementById('msn-search')?.value || '').trim().toLowerCase());
+  });
+
+  document.getElementById('msn-search')?.addEventListener('input', function() {
+    _renderMissionTable(this.value.trim().toLowerCase());
+  });
+
+  await _fetchHRMissions();
+}
+
+window.renderHRMissions = renderHRMissions;
+
+async function _fetchHRMissions() {
+  const res = await apiGetTeamMissions();
+  const tbody = document.getElementById('msn-tbody');
+  if (!tbody) return;
+
+  if (res?.status !== 'ok') {
+    tbody.innerHTML =
+      `<tr><td colspan="10" class="table-empty">${_esc(res?.message || t('error.server'))}</td></tr>`;
+    return;
+  }
+
+  _msnAllRecords = Array.isArray(res.data?.requests) ? res.data.requests : [];
+  _renderMissionTable((document.getElementById('msn-search')?.value || '').trim().toLowerCase());
+}
+
+function _renderMissionTable(query) {
+  const tbody = document.getElementById('msn-tbody');
+  if (!tbody) return;
+
+  let rows = _msnAllRecords;
+  if (_msnStatusFilter) {
+    rows = rows.filter(function(m) {
+      return String(m.status || '').toLowerCase() === _msnStatusFilter;
+    });
+  }
+  if (query) {
+    rows = rows.filter(function(m) {
+      return (m.employee_name || '').toLowerCase().includes(query) ||
+             (m.department    || '').toLowerCase().includes(query) ||
+             (m.destination   || '').toLowerCase().includes(query) ||
+             (m.mission_type  || '').toLowerCase().includes(query) ||
+             (m.reason        || '').toLowerCase().includes(query);
+    });
+  }
+
+  const countEl = document.getElementById('msn-count');
+  if (countEl) countEl.textContent = rows.length;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" class="table-empty">${t('mission.no_requests')}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(_hrMissionRow).join('');
+
+  tbody.querySelectorAll('.msn-approve-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { _hrDecideMission(btn.dataset.id, 'approve'); });
+  });
+  tbody.querySelectorAll('.msn-reject-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { _hrDecideMission(btn.dataset.id, 'reject'); });
+  });
+}
+
+function _hrMissionRow(m) {
+  const status      = String(m.status || '').toLowerCase();
+  const statusClass = { pending: 'badge-pending', approved: 'badge-mission', rejected: 'badge-absent' }[status] || 'badge-pending';
+  const statusLabel = t('status.' + status) || status;
+  const isPending   = status === 'pending';
+
+  return `
+    <tr>
+      <td style="font-weight:var(--fw-medium)">${_esc(m.employee_name || m.employee_id || '')}</td>
+      <td>${_esc(m.department || '')}</td>
+      <td>${_esc(_missionTypeLabel(m.mission_type))}</td>
+      <td>${_esc(m.destination || '—')}</td>
+      <td dir="ltr">${_esc(_fmtDate(_leaveDateOnly(m.start_date)))}</td>
+      <td dir="ltr">${_esc(_fmtDate(_leaveDateOnly(m.end_date)))}</td>
+      <td style="text-align:center" dir="ltr">${Number(m.days) || _leaveDaysCount(m.start_date, m.end_date)}</td>
+      <td class="leave-reason-cell">${_esc(m.reason || '—')}</td>
+      <td><span class="badge ${_esc(statusClass)}">${_esc(statusLabel)}</span></td>
+      <td>
+        ${isPending
+          ? `<div class="row-actions">
+               <button class="btn btn-sm btn-primary msn-approve-btn"
+                       data-id="${_esc(m.id)}" type="button">${t('action.approve')}</button>
+               <button class="btn btn-sm btn-danger msn-reject-btn"
+                       data-id="${_esc(m.id)}" type="button">${t('action.reject')}</button>
+             </div>`
+          : '—'}
+      </td>
+    </tr>`;
+}
+
+async function _hrDecideMission(missionId, decision) {
+  const res = decision === 'approve'
+    ? await apiApproveMission(missionId)
+    : await apiRejectMission(missionId, '');
+
+  if (res?.status === 'ok') {
+    showToast(decision === 'approve' ? t('status.approved') : t('status.rejected'),
+              decision === 'approve' ? 'success' : 'warning');
+    await _fetchHRMissions();
+  } else {
+    showToast(res?.message || t('error.server'), 'error');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Add mission modal — HR records a mission directly, already approved
+// ---------------------------------------------------------------------------
+async function _openMissionModal() {
+  const overlay = document.getElementById('msn-modal');
+  const bd      = document.getElementById('msn-modal-bd');
+  if (!overlay || !bd) return;
+
+  bd.innerHTML = `<p class="table-empty">${t('action.loading')}</p>`;
+  overlay.hidden = false;
+
+  // Attending employees only — HR, CEO and MD never show as absent, so a
+  // mission would have nothing to correct for them (the server refuses too)
+  const res = await apiGetAllEmployees();
+  const employees = (res?.status === 'ok' ? (res.data.employees || []) : [])
+    .filter(function(e) {
+      const r = String(e.role || '').toLowerCase();
+      return String(e.active || '').toUpperCase() !== 'FALSE' &&
+             r !== 'hr' && r !== 'ceo' && r !== 'md';
+    })
+    .sort(function(a, b) { return String(a.name || '').localeCompare(String(b.name || '')); });
+
+  const empOpts = `<option value="" disabled selected>${t('employees.title')}</option>` +
+    employees.map(function(e) {
+      return `<option value="${_esc(e.id)}">${_esc(e.name || e.username || e.id)}</option>`;
+    }).join('');
+
+  bd.innerHTML = `
+    <div class="panel-form">
+      <div class="form-group">
+        <label>${t('employees.name')} <span class="form-required">*</span></label>
+        <select id="msn-f-emp" class="table-toolbar-select" style="max-width:unset">${empOpts}</select>
+      </div>
+      <div class="form-group">
+        <label>${t('mission.type')} <span class="form-required">*</span></label>
+        <select id="msn-f-type" class="table-toolbar-select" style="max-width:unset">
+          <option value="meeting">${t('mission.type_meeting')}</option>
+          <option value="training">${t('mission.type_training')}</option>
+          <option value="site_visit">${t('mission.type_site_visit')}</option>
+          <option value="business_trip">${t('mission.type_business_trip')}</option>
+          <option value="other">${t('mission.type_other')}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>${t('mission.destination')} <span class="form-required">*</span></label>
+        <input id="msn-f-dest" type="text" class="input" maxlength="120"
+               placeholder="${t('mission.destination_placeholder')}">
+      </div>
+      <div class="form-group">
+        <label>${t('date.from')} <span class="form-required">*</span></label>
+        <input id="msn-f-start" type="date" class="input" value="${_isoToday()}">
+      </div>
+      <div class="form-group">
+        <label>${t('date.to')} <span class="form-required">*</span></label>
+        <input id="msn-f-end" type="date" class="input" value="${_isoToday()}">
+      </div>
+      <div class="form-group">
+        <label>${t('mission.details')}</label>
+        <textarea id="msn-f-reason" class="input" rows="3"></textarea>
+      </div>
+      <span class="form-field-error" id="msn-f-error" hidden></span>
+    </div>`;
+}
+
+function _closeMissionModal() {
+  const overlay = document.getElementById('msn-modal');
+  if (overlay) overlay.hidden = true;
+}
+
+async function _saveHRMission() {
+  const errEl = document.getElementById('msn-f-error');
+  const show  = function(msg) {
+    if (!errEl) return;
+    errEl.textContent = msg;
+    errEl.hidden = false;
+  };
+  if (errEl) errEl.hidden = true;
+
+  const employeeId  = document.getElementById('msn-f-emp')?.value  || '';
+  const missionType = document.getElementById('msn-f-type')?.value || '';
+  const destination = (document.getElementById('msn-f-dest')?.value || '').trim();
+  const startDate   = document.getElementById('msn-f-start')?.value || '';
+  const endDate     = document.getElementById('msn-f-end')?.value   || '';
+  const reason      = (document.getElementById('msn-f-reason')?.value || '').trim();
+
+  if (!employeeId)            { show(t('error.required_field')); return; }
+  if (!destination)           { show(t('error.required_field')); return; }
+  if (!startDate || !endDate) { show(t('error.required_field')); return; }
+  if (endDate < startDate)    { show(t('error.invalid_date'));   return; }
+
+  const btn = document.getElementById('msn-save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = t('action.loading'); }
+
+  const res = await apiAddMission({
+    employee_id:  employeeId,
+    mission_type: missionType,
+    start_date:   startDate,
+    end_date:     endDate,
+    destination:  destination,
+    reason:       reason
+  });
+
+  if (btn) { btn.disabled = false; btn.textContent = t('action.save'); }
+
+  if (res?.status === 'ok') {
+    _closeMissionModal();
+    showToast(t('mission.added'), 'success');
+    await _fetchHRMissions();
+  } else {
+    show(res?.message || t('error.server'));
+  }
 }

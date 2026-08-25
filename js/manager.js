@@ -72,6 +72,11 @@ async function _loadTeamStatus() {
       ${_mgrStatCard(summary.absent,   t('team.absent_count'),  'absent')}
       ${_mgrStatCard(summary.late,     t('team.late_count'),    'late')}
       ${_mgrStatCard(summary.on_leave, t('team.leave_count'),   'leave')}
+      ${/* Only when somebody is actually out on duty — an always-present zero
+            card would push the tidy 2×2 grid onto a third row every day */
+        Number(summary.on_mission) > 0
+        ? _mgrStatCard(summary.on_mission, t('team.mission_count'), 'mission')
+        : ''}
     </div>
 
     <div class="mgr-section-header">
@@ -162,10 +167,16 @@ function renderTeamLeaves(container) {
 
   container.innerHTML = `
     <div class="view-header">
-      <span class="view-title">${t('leave.title')}</span>
+      <span class="view-title">${t('nav.approvals')}</span>
     </div>
     <div class="view-content">
+      <h2 class="mgr-section-title mgr-queue-title">${t('leave.title')}</h2>
       <ul class="mgr-leave-list" id="mgr-leave-body" role="list">
+        ${_skeletonLeave()}
+      </ul>
+
+      <h2 class="mgr-section-title mgr-queue-title">${t('mission.title')}</h2>
+      <ul class="mgr-leave-list" id="mgr-mission-body" role="list">
         ${_skeletonLeave()}
       </ul>
 
@@ -176,6 +187,113 @@ function renderTeamLeaves(container) {
     </div>`;
 
   _loadTeamLeaves();
+  _loadTeamMissions();
+}
+
+// ---------------------------------------------------------------------------
+// Mission approval queue — same screen as leave, same shape
+// ---------------------------------------------------------------------------
+// Missions and leave are both "somebody wants a day signed off", so they share
+// one approvals screen rather than competing for a second tab slot. The server
+// scopes this to direct reports exactly as it does for leave.
+async function _loadTeamMissions() {
+  const body = document.getElementById('mgr-mission-body');
+  if (!body) return;
+
+  let res;
+  try { res = await apiGetTeamMissions(); } catch (_) { res = null; }
+  if (!document.getElementById('mgr-mission-body')) return;
+
+  if (!res || res.status !== 'ok') {
+    // A Web App still running a version without missions must not blank the
+    // leave queue beside it — report this section and leave the rest alone
+    body.innerHTML = `<li class="mgr-error" role="alert">${_esc((res && res.message) || t('error.server'))}</li>`;
+    return;
+  }
+
+  const requests = res.data.requests || [];
+
+  if (requests.length === 0) {
+    body.innerHTML = `
+      <li class="emp-empty-state">
+        <span class="emp-empty-icon" aria-hidden="true">💼</span>
+        <p class="emp-empty-msg">${t('mission.no_requests')}</p>
+      </li>`;
+    return;
+  }
+
+  body.innerHTML = requests.map(m => _missionCard(m)).join('');
+
+  body.querySelectorAll('.mgr-mission-approve').forEach(btn => {
+    btn.addEventListener('click', () => _handleMissionDecision(btn.dataset.id, 'approve'));
+  });
+  body.querySelectorAll('.mgr-mission-reject').forEach(btn => {
+    btn.addEventListener('click', () => _handleMissionDecision(btn.dataset.id, 'reject'));
+  });
+}
+
+function _missionCard(m) {
+  const start = _fmtDate(m.start_date);
+  const end   = _fmtDate(m.end_date);
+  const dates = start === end ? start : `${start} — ${end}`;
+
+  return `
+    <li class="mgr-leave-card mgr-mission-card" data-id="${_esc(m.id)}">
+      <div class="mgr-leave-header">
+        <span class="mgr-leave-name">${_esc(m.employee_name)}</span>
+        <span class="badge badge-pending">${t('leave.pending')}</span>
+      </div>
+      <div class="mgr-leave-meta">
+        <span class="mgr-leave-type">${_esc(_missionTypeLabel(m.mission_type))}</span>
+        <span class="mgr-leave-dates">${_esc(dates)}</span>
+      </div>
+      <div class="mgr-mission-dest">
+        <span class="mgr-leave-balance-label">${t('mission.destination')}</span>
+        <span class="mgr-mission-dest-value">${_esc(m.destination || '—')}</span>
+        <span class="badge badge-mission" dir="ltr">${Number(m.days) || 1} ${_esc(t('leave.days'))}</span>
+      </div>
+      ${m.reason ? `<p class="mgr-leave-reason">${_esc(m.reason)}</p>` : ''}
+      <div class="mgr-leave-actions">
+        <button class="btn btn-sm btn-primary mgr-mission-approve"
+                data-id="${_esc(m.id)}" type="button">${t('action.approve')}</button>
+        <button class="btn btn-sm btn-danger mgr-mission-reject"
+                data-id="${_esc(m.id)}" type="button">${t('action.reject')}</button>
+      </div>
+    </li>`;
+}
+
+// Approve and reject differ only in the call and the toast, so one handler owns
+// both — the same reason _decideMission exists on the Apps Script side
+async function _handleMissionDecision(missionId, decision) {
+  const card = document.querySelector(`.mgr-mission-card[data-id="${CSS.escape(missionId)}"]`);
+  const btn  = card?.querySelector('.mgr-mission-' + decision);
+  const label = decision === 'approve' ? t('action.approve') : t('action.reject');
+  if (btn) { btn.disabled = true; btn.textContent = t('action.loading'); }
+
+  const res = decision === 'approve'
+    ? await apiApproveMission(missionId)
+    : await apiRejectMission(missionId, '');
+
+  if (res.status === 'ok') {
+    card?.remove();
+    showToast(decision === 'approve' ? t('status.approved') : t('status.rejected'),
+              decision === 'approve' ? 'success' : 'warning');
+    _checkEmptyMissionList();
+  } else {
+    showToast(res.message || t('error.server'), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
+}
+
+function _checkEmptyMissionList() {
+  const body = document.getElementById('mgr-mission-body');
+  if (body && body.children.length === 0) {
+    body.innerHTML = `
+      <li class="emp-empty-state">
+        <span class="emp-empty-icon" aria-hidden="true">💼</span>
+        <p class="emp-empty-msg">${t('mission.no_requests')}</p>
+      </li>`;
+  }
 }
 
 async function _loadTeamLeaves() {
@@ -419,7 +537,14 @@ function _memberRow(member) {
           ${_esc(member.name)}
           ${member.is_self ? `<span class="mgr-self-tag">${_esc(t('team.self_tag'))}</span>` : ''}
         </span>
-        <span class="mgr-member-dept">${_esc(member.department)}</span>
+        <span class="mgr-member-dept">
+          ${_esc(member.department)}
+          ${/* Where they actually are — the whole point of the mission status
+                is that the manager sees duty, not an unexplained absence */
+            member.mission && member.mission.destination
+            ? ` · 📍 ${_esc(member.mission.destination)}`
+            : ''}
+        </span>
       </span>
       <span class="mgr-member-right">
         ${timeStr ? `<span class="mgr-member-time">${_esc(timeStr)}</span>` : ''}
@@ -579,22 +704,24 @@ function _refreshLabel() {
 
 function _badgeClass(status) {
   const map = {
-    present:  'badge-present',
-    late:     'badge-late',
-    absent:   'badge-absent',
-    on_leave: 'badge-leave',
-    leave:    'badge-leave'
+    present:    'badge-present',
+    late:       'badge-late',
+    absent:     'badge-absent',
+    on_leave:   'badge-leave',
+    leave:      'badge-leave',
+    on_mission: 'badge-mission'
   };
   return map[String(status).toLowerCase()] || 'badge-absent';
 }
 
 function _statusLabel(status) {
   const map = {
-    present:  t('status.present'),
-    late:     t('status.late'),
-    absent:   t('status.absent'),
-    on_leave: t('status.on_leave'),
-    leave:    t('status.on_leave')
+    present:    t('status.present'),
+    late:       t('status.late'),
+    absent:     t('status.absent'),
+    on_leave:   t('status.on_leave'),
+    leave:      t('status.on_leave'),
+    on_mission: t('status.on_mission')
   };
   return map[String(status).toLowerCase()] || String(status);
 }

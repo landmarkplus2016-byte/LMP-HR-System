@@ -669,7 +669,10 @@
 }
 
 @media (min-width: 900px) {
-  .exec-summary-grid { grid-template-columns: repeat(4, 1fr); }
+  .exec-summary-grid   { grid-template-columns: repeat(4, 1fr); }
+  /* On days somebody is out on duty the grid gains a fifth tile rather than
+     wrapping one card onto a lonely second row */
+  .exec-summary-grid-5 { grid-template-columns: repeat(5, 1fr); }
 }
 
 /* Each total is a button that opens the matching employee list. It inherits the
@@ -807,9 +810,10 @@
   white-space: nowrap;
 }
 
-.exec-chip-late   { background: var(--c-late-bg);    color: var(--c-late);    }
-.exec-chip-absent { background: var(--c-absent-bg);  color: var(--c-absent);  }
-.exec-chip-leave  { background: var(--c-leave-bg);   color: var(--c-leave);   }
+.exec-chip-late    { background: var(--c-late-bg);    color: var(--c-late);    }
+.exec-chip-absent  { background: var(--c-absent-bg);  color: var(--c-absent);  }
+.exec-chip-leave   { background: var(--c-leave-bg);   color: var(--c-leave);   }
+.exec-chip-mission { background: var(--c-mission-bg); color: var(--c-mission); }
 
 .exec-member-list {
   display: flex;
@@ -959,6 +963,48 @@
 
 .mgr-stat-leave   { background: var(--c-leave-bg);   border-color: var(--c-leave-border);   }
 .mgr-stat-leave   .mgr-stat-num { color: var(--c-leave);   }
+
+.mgr-stat-mission { background: var(--c-mission-bg); border-color: var(--c-mission-border); }
+.mgr-stat-mission .mgr-stat-num { color: var(--c-mission); }
+
+/* ── Missions ──────────────────────────────────────────────────────────────── */
+
+/* One-line explanation above the request form — a mission is not time off, and
+   an employee filing one for the first time needs to be told the difference */
+.mission-hint {
+  font-size: var(--text-xs);
+  color: var(--c-text-secondary);
+  line-height: var(--lh-snug);
+  margin-block-end: var(--sp-4);
+  padding: var(--sp-3);
+  background: var(--c-mission-bg);
+  border-radius: var(--r-md);
+  border-inline-start: 3px solid var(--c-mission);
+}
+
+/* Section heading on the approvals screen, which now stacks two queues */
+.mgr-queue-title {
+  display: block;
+  margin-block: var(--sp-4) var(--sp-2);
+}
+
+.mgr-queue-title:first-child { margin-block-start: 0; }
+
+/* Destination row on a pending mission card */
+.mgr-mission-dest {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-block-start: var(--sp-2);
+}
+
+.mgr-mission-dest-value {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  flex: 1;
+  min-width: 0;
+}
 
 /* ── Manager: section header row ────────────────────────────────────────────── */
 

@@ -38,6 +38,12 @@
   --c-leave-bg:       oklch(0.965 0.035 253);
   --c-leave-border:   oklch(0.87 0.07 253);
 
+  /* On Mission — violet. Deliberately far from leave blue and holiday teal:
+     "working off-site" must never be mistaken for "not working" at a glance */
+  --c-mission:        oklch(0.53 0.19 300);
+  --c-mission-bg:     oklch(0.965 0.035 300);
+  --c-mission-border: oklch(0.87 0.075 300);
+
   /* Holiday — teal-slate to distinguish from leave */
   --c-holiday:        oklch(0.55 0.14 190);
   --c-holiday-bg:     oklch(0.965 0.04 190);
@@ -500,6 +506,7 @@ input:focus, textarea:focus, select:focus {
 .badge-late     { background: var(--c-late-bg);     color: var(--c-late);     }
 .badge-absent   { background: var(--c-absent-bg);   color: var(--c-absent);   }
 .badge-leave    { background: var(--c-leave-bg);    color: var(--c-leave);    }
+.badge-mission  { background: var(--c-mission-bg);  color: var(--c-mission);  }
 .badge-holiday  { background: var(--c-holiday-bg);  color: var(--c-holiday);  }
 .badge-pending  { background: var(--c-pending-bg);  color: var(--c-pending);  }
 

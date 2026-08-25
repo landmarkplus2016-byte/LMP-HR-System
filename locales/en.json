@@ -42,6 +42,8 @@
     "config": "Settings",
     "history": "My Records",
     "leave": "Request Leave",
+    "missions": "Missions",
+    "approvals": "Approvals",
     "team": "My Team",
     "org": "Company Status",
     "signout": "Sign Out",
@@ -170,6 +172,30 @@
     "balances_unavailable": "Leave balances are not available yet — the Apps Script Web App needs to be redeployed with the latest version."
   },
 
+  "mission": {
+    "title": "Missions",
+    "my_title": "My Missions",
+    "request": "Request Mission",
+    "hint": "A mission is official work away from a company location — a client meeting, training or site visit. An approved mission means that day is not counted as an absence.",
+    "hr_hint": "Approved missions replace an absence for the days they cover",
+    "type": "Mission type",
+    "type_meeting": "Meeting",
+    "type_training": "Training",
+    "type_site_visit": "Site visit",
+    "type_business_trip": "Business trip",
+    "type_other": "Other",
+    "destination": "Destination",
+    "destination_placeholder": "e.g. Client office, New Cairo",
+    "details": "Details",
+    "submit": "Submit request",
+    "new_request": "New request",
+    "no_requests": "No missions",
+    "success_message": "Mission request submitted successfully",
+    "add": "Add Mission",
+    "added": "Mission recorded successfully",
+    "days_this_year": "Mission days this year"
+  },
+
   "team": {
     "title": "My Team",
     "status_today": "Team status today",
@@ -178,6 +204,7 @@
     "absent_count": "Absent",
     "late_count": "Late",
     "leave_count": "On Leave",
+    "mission_count": "On Mission",
     "live": "Live",
     "attendance_title": "Team Attendance",
     "my_attendance": "My attendance",
@@ -192,6 +219,7 @@
     "present_today": "Present today",
     "absent_today": "Absent today",
     "on_leave": "On leave",
+    "on_mission": "On mission",
     "late_today": "Late today",
     "recent_activity": "Recent activity"
   },
@@ -313,7 +341,8 @@
     "col_total_absent": "Total Absent",
     "col_total_late": "Total Late",
     "col_total_hours": "Total Hours",
-    "col_leave_days": "Leave Days"
+    "col_leave_days": "Leave Days",
+    "col_mission_days": "Mission Days"
   },
 
   "integrity": {
@@ -368,6 +397,7 @@
     "absent": "Absent",
     "late": "Late",
     "on_leave": "On Leave",
+    "on_mission": "On Mission",
     "holiday": "Holiday",
     "pending": "Pending",
     "approved": "Approved",

@@ -384,6 +384,43 @@ async function apiRejectLeave(leaveId, reason) {
 }
 
 // ---------------------------------------------------------------------------
+// Missions — off-site duty
+// ---------------------------------------------------------------------------
+
+async function apiSubmitMission(missionType, startDate, endDate, destination, reason) {
+  return post('submit_mission', {
+    mission_type: missionType,
+    start_date:   startDate,
+    end_date:     endDate,
+    destination:  destination,
+    reason:       reason
+  });
+}
+
+async function apiGetMyMissions() {
+  return post('get_my_missions', {});
+}
+
+// Manager / CEO / MD get their direct reports' pending queue; HR gets every
+// mission at every status
+async function apiGetTeamMissions() {
+  return post('get_team_missions', {});
+}
+
+async function apiApproveMission(missionId) {
+  return post('approve_mission', { mission_id: missionId });
+}
+
+async function apiRejectMission(missionId, reason) {
+  return post('reject_mission', { mission_id: missionId, reason });
+}
+
+// HR only — records a mission directly, already approved
+async function apiAddMission(missionData) {
+  return post('add_mission', missionData);
+}
+
+// ---------------------------------------------------------------------------
 // Employees — Stage 4 / 5
 // ---------------------------------------------------------------------------
 

@@ -46,6 +46,9 @@ const Icons = {
   signout: `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/></svg>`,
   lang: `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/></svg>`,
   shield: `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.415L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`,
+  // Briefcase — official off-site duty, deliberately not the calendar used for
+  // leave so a mission never reads as time off at a glance
+  mission: `<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/></svg>`,
 };
 
 // ---------------------------------------------------------------------------
@@ -53,36 +56,41 @@ const Icons = {
 // ---------------------------------------------------------------------------
 const NAV_ITEMS = {
   employee: [
-    { hash: 'home',    icon: Icons.home,      labelKey: 'nav.home'    },
-    { hash: 'history', icon: Icons.history,   labelKey: 'nav.history' },
-    { hash: 'leave',   icon: Icons.leave,     labelKey: 'nav.leave'   },
+    { hash: 'home',     icon: Icons.home,     labelKey: 'nav.home'     },
+    { hash: 'history',  icon: Icons.history,  labelKey: 'nav.history'  },
+    { hash: 'leave',    icon: Icons.leave,    labelKey: 'nav.leave'    },
+    { hash: 'missions', icon: Icons.mission,  labelKey: 'nav.missions' },
   ],
   // A manager records their own attendance too, but their landing screen is the
   // team view — the check-in screen (#home) is reached from the "my attendance"
   // card at the top of it, not from a tab, so the bar stays readable on mobile.
+  // Mission and leave approvals share one screen (#team-leaves) so the mobile
+  // tab bar stays readable — a manager approving things wants one queue, not two
   manager: [
-    { hash: 'team',            icon: Icons.team,      labelKey: 'nav.team'          },
-    { hash: 'team-attendance', icon: Icons.clipboard, labelKey: 'nav.attendance'    },
-    { hash: 'team-leaves',     icon: Icons.calendar,  labelKey: 'nav.leave_requests'},
-    { hash: 'history',         icon: Icons.history,   labelKey: 'nav.history'       },
-    { hash: 'leave',           icon: Icons.leave,     labelKey: 'nav.leave'         },
+    { hash: 'team',            icon: Icons.team,      labelKey: 'nav.team'       },
+    { hash: 'team-attendance', icon: Icons.clipboard, labelKey: 'nav.attendance' },
+    { hash: 'team-leaves',     icon: Icons.calendar,  labelKey: 'nav.approvals'  },
+    { hash: 'leave',           icon: Icons.leave,     labelKey: 'nav.leave'      },
+    { hash: 'missions',        icon: Icons.mission,   labelKey: 'nav.missions'   },
+    { hash: 'history',         icon: Icons.history,   labelKey: 'nav.history'    },
   ],
   // CEO and Managing Director share one permission group. They do not check in,
   // so there is no home/check-in item — same as HR. Leave approvals are theirs
   // because department managers report straight to them.
   ceo: [
-    { hash: 'org',         icon: Icons.team,     labelKey: 'nav.org'           },
-    { hash: 'exec-leaves', icon: Icons.calendar, labelKey: 'nav.leave_requests'},
+    { hash: 'org',         icon: Icons.team,     labelKey: 'nav.org'       },
+    { hash: 'exec-leaves', icon: Icons.calendar, labelKey: 'nav.approvals' },
   ],
   md: [
-    { hash: 'org',         icon: Icons.team,     labelKey: 'nav.org'           },
-    { hash: 'exec-leaves', icon: Icons.calendar, labelKey: 'nav.leave_requests'},
+    { hash: 'org',         icon: Icons.team,     labelKey: 'nav.org'       },
+    { hash: 'exec-leaves', icon: Icons.calendar, labelKey: 'nav.approvals' },
   ],
   hr: [
     { hash: 'dashboard',      icon: Icons.dashboard, labelKey: 'nav.dashboard'     },
     { hash: 'live-status',    icon: Icons.live,      labelKey: 'nav.live_status'   },
     { hash: 'attendance',     icon: Icons.clipboard, labelKey: 'nav.attendance'    },
     { hash: 'leave-requests', icon: Icons.calendar,  labelKey: 'nav.leave_requests'},
+    { hash: 'hr-missions',    icon: Icons.mission,   labelKey: 'nav.missions'      },
     { hash: 'reports',        icon: Icons.chart,     labelKey: 'nav.reports'       },
     { hash: 'integrity',      icon: Icons.shield,    labelKey: 'nav.integrity'     },
     { hash: 'employees',      icon: Icons.people,    labelKey: 'nav.employees'     },
@@ -102,6 +110,8 @@ const ROUTES = {
   'history':          ['employee', 'manager'],
   'leave':            ['employee', 'manager'],
   'leave-balance':    ['employee', 'manager'],
+  'missions':         ['employee', 'manager'],
+  'hr-missions':      ['hr'],
   'org':              ['ceo', 'md'],
   'exec-leaves':      ['ceo', 'md'],
   'team':             ['manager', 'hr'],
@@ -131,6 +141,8 @@ const VIEW_RENDER = {
   'history':          'renderAttendanceHistory',
   'leave':            'renderLeaveForm',
   'leave-balance':    'renderLeaveBalance',
+  'missions':         'renderMissions',
+  'hr-missions':      'renderHRMissions',
   'org':              'renderOrgStatus',
   'exec-leaves':      'renderExecLeaves',
   'team':             'renderTeamStatus',
