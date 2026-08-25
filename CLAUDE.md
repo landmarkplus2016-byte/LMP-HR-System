@@ -78,7 +78,8 @@ lmp-attendance/
 ├── CLAUDE.md                   ← you are here
 ├── index.html                  # App shell only — loads all CSS and JS, contains router
 ├── manifest.json               # PWA manifest — name, icons, display standalone
-├── sw.js                       # Service worker — cache-first for static assets, background sync for offline queue
+├── version.json                # Deployed build number — BUMP ON EVERY DEPLOY (see below)
+├── sw.js                       # Service worker — stale-while-revalidate for static assets, background sync for offline queue
 │
 ├── design/
 │   └── LMP_Attendance_Screens_v3.html  # Interactive design prototype — visual reference for all UI work
@@ -244,6 +245,47 @@ Employee taps "Check In"
 - When connectivity returns, service worker fires → `offline.js` processes queue in order
 - Each item retried up to 3 times before marking as failed and notifying HR
 - Offline records show `synced: FALSE` until confirmed — employee sees "Pending sync" indicator
+
+### Deploying an Update (`version.json` + `sw.js` + `js/offline.js`)
+
+> ⚠️ **Bump `version` in `version.json` on every deploy.** It is the one manual
+> step, and skipping it means employees keep running the old build.
+
+**Why it is needed.** A browser decides a service worker is new by
+byte-comparing `sw.js`. Changing `js/hr.js` and redeploying leaves `sw.js`
+identical, so no update event ever fires — and with a cache-first worker the
+stale JS is then served forever. That is why the app used to need its browser
+history cleared after every deploy.
+
+**Two independent triggers, both ending at the same banner:**
+
+| Trigger | Fires when | Catches |
+|---|---|---|
+| `updatefound` on the SW registration | `sw.js` itself changed | Deploys that touched the worker |
+| `checkAppVersion()` in `js/offline.js` | `version.json` differs from `localStorage.lmp_app_version` | **Every** deploy, including JS/CSS-only ones |
+
+`checkAppVersion()` runs on startup and every time the tab becomes visible — an
+installed PWA is often left open for days without a reload. `version.json` is
+fetched with `cache: 'no-store'` plus a cache-busting query, and `sw.js` lists it
+in `NEVER_CACHE`, so nothing can answer it with a stale copy.
+
+**Tapping "Update Now"** purges every Cache Storage bucket *before* reloading —
+a plain reload would just be answered out of the same stale cache — then hands
+over to any waiting worker. It refuses while offline rather than deleting the
+cache and leaving the user with nothing to load.
+
+**Rules for this feature:**
+- `sw.js` uses **stale-while-revalidate**, never cache-first. The cached copy
+  answers instantly and a background fetch refreshes it for next load, so assets
+  self-heal even if a user never taps the banner. The revalidation fetch passes
+  `cache: 'reload'` to bypass the browser's own HTTP cache — GitHub Pages serves
+  with `max-age`, which would otherwise hand back a stale file
+- `CACHE_VERSION` in `sw.js` only needs bumping for a deliberate hard reset of
+  every cached asset. Routine deploys do **not** need it — that is what
+  `version.json` is for
+- Anything added to `STATIC_ASSETS` must actually exist, and anything the app
+  loads must be listed there or it is unavailable offline
+- Never add `version.json` to `STATIC_ASSETS`
 
 ### Session Cleanup (`Maintenance.gs`)
 - `cleanExpiredSessions()` → nightly trigger at 02:00 → deletes rows where `expires_at < now()`

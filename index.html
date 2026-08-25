@@ -115,10 +115,32 @@
   <script src="js/hr.js"></script>
   <script src="js/app.js"></script>
 
-  <!-- Service worker registration + update detection -->
+  <!-- ═══════════════════════════════════════════════════════════
+       Service worker registration + update detection
+
+       Two independent triggers, because neither alone is enough:
+
+       1. sw.js changed — the browser byte-compares sw.js and fires
+          'updatefound'. This only catches deploys that touched sw.js itself.
+
+       2. version.json changed — checkAppVersion() in js/offline.js asks the
+          server what is actually deployed. This is what catches an ordinary
+          deploy that only changed app JS/CSS, which trigger 1 is blind to and
+          which used to leave employees stuck on a cached build until they
+          cleared their browser history.
+
+       Both end at the same banner, which purges the cache before reloading.
+       ═══════════════════════════════════════════════════════════ -->
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+    window.addEventListener('load', () => {
+      // Ask on startup, and again whenever the app is brought back to the front
+      // — an installed PWA is often left open for days without a reload.
+      const runVersionCheck = () => {
+        if (typeof checkAppVersion === 'function') checkAppVersion();
+      };
+      runVersionCheck();
+
+      if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then(reg => {
 
           // A waiting SW means a new version already downloaded — show banner now.
@@ -137,14 +159,25 @@
             });
           });
 
-          // Silently check for a new version each time the tab becomes visible.
           document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') reg.update().catch(() => {});
+            if (document.visibilityState !== 'visible') return;
+            reg.update().catch(() => {});
+            runVersionCheck();
           });
 
-        }).catch(() => {});
-      });
-    }
+        }).catch(() => {
+          // No service worker (unsupported, or blocked) — the version check
+          // still works on its own, so keep it running.
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') runVersionCheck();
+          });
+        });
+      } else {
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') runVersionCheck();
+        });
+      }
+    });
   </script>
 
 </body>

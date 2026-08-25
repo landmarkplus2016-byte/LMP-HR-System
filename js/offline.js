@@ -7,6 +7,7 @@
 //   getQueueCount()             — Promise<number> of pending items
 //   queueOfflineCheckin(payload)— called by attendance.js on network failure
 //   showUpdateBanner(worker)    — called by index.html SW registration
+//   checkAppVersion()           — called by index.html on load + tab focus
 // =============================================================================
 
 'use strict';
@@ -18,6 +19,11 @@ const _DB_NAME    = 'lmp_offline';
 const _DB_VERSION = 1;
 const _STORE      = 'lmp_queue';
 const _MAX_TRIES  = 3;
+
+// Version of the build currently running in this browser, as last confirmed
+// against version.json. Compared on every check to decide whether to offer an
+// update — see checkAppVersion().
+const _VERSION_KEY = 'lmp_app_version';
 
 // Guard against concurrent processQueue() runs
 let _processing = false;
@@ -288,15 +294,136 @@ function _flashSynced() {
 }
 
 // =============================================================================
-// Public: showUpdateBanner
-// Called by the SW registration script in index.html when a new version is
-// waiting. Shows a non-intrusive bottom card with an "Update Now" button.
+// Public: checkAppVersion
 //
-// worker      — ServiceWorker instance in "installed" / "waiting" state.
-// Tap outside — dismisses the banner without updating.
-// Tap button  — posts SKIP_WAITING → SW activates → page reloads.
+// Asks the server what version is actually deployed and offers an update when
+// it differs from what this browser is running.
+//
+// This exists because the service worker cannot be relied on to notice a
+// deploy: the browser decides a worker is "new" by byte-comparing sw.js, so
+// shipping changed JS without touching sw.js produced no update event at all.
+// version.json is fetched with no-store plus a cache-busting query, so neither
+// the service worker nor the browser HTTP cache can answer it staleley.
+//
+// First run stores the version silently — there is nothing to update to yet.
 // =============================================================================
-function showUpdateBanner(worker) {
+async function checkAppVersion() {
+  let deployed;
+  try {
+    const res = await fetch('version.json?_=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    deployed = String(data.version || '').trim();
+  } catch (_) {
+    // Offline or the file is not deployed yet — nothing to do, and definitely
+    // no banner. A failed version check must never interrupt the user.
+    return;
+  }
+
+  if (!deployed) return;
+
+  const running = localStorage.getItem(_VERSION_KEY);
+
+  // First run on this device: adopt whatever is deployed as the baseline
+  if (!running) {
+    localStorage.setItem(_VERSION_KEY, deployed);
+    return;
+  }
+
+  if (running !== deployed) showUpdateBanner(null, deployed);
+}
+
+// =============================================================================
+// Private: applyUpdate
+//
+// Clears every cached asset, then reloads so the whole app comes back from the
+// network. Purging first is the part that matters — a plain reload would just
+// be answered out of the same stale cache.
+//
+// `worker` is the waiting ServiceWorker when the service worker itself changed,
+// or null when only version.json moved.
+// =============================================================================
+async function applyUpdate(worker, newVersion) { // eslint-disable-line no-param-reassign
+  // Record the target version before reloading, so the banner does not
+  // reappear immediately after a successful update.
+  if (newVersion) {
+    try { localStorage.setItem(_VERSION_KEY, newVersion); } catch (_) {}
+  }
+
+  await _purgeCaches();
+
+  // The version-triggered path arrives with no worker, but a new one may still
+  // be sitting in "waiting" — adopt it so both paths hand over cleanly instead
+  // of leaving the superseded worker in charge until every tab closes.
+  if (!worker && navigator.serviceWorker) {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.waiting) worker = reg.waiting;
+    } catch (_) { /* fall through to a plain reload */ }
+  }
+
+  if (worker) {
+    // A new worker is waiting — hand over to it, then reload once it controls
+    // the page. The timeout is a safety net for the case where
+    // controllerchange never arrives.
+    navigator.serviceWorker.addEventListener(
+      'controllerchange',
+      () => window.location.reload(),
+      { once: true }
+    );
+    worker.postMessage({ type: 'SKIP_WAITING' });
+    setTimeout(() => window.location.reload(), 2000);
+    return;
+  }
+
+  window.location.reload();
+}
+
+// Drop every Cache Storage bucket. Asks the active service worker to do it so
+// the deletion is ordered against any fetch it has in flight, and falls back to
+// deleting from the page when there is no controller.
+function _purgeCaches() {
+  return new Promise(resolve => {
+    const done = () => resolve();
+
+    // Never wait forever on a worker that is not answering
+    const bail = setTimeout(done, 3000);
+
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      const channel = function (event) {
+        if (event.data && event.data.type === 'CACHES_PURGED') {
+          navigator.serviceWorker.removeEventListener('message', channel);
+          clearTimeout(bail);
+          done();
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', channel);
+      navigator.serviceWorker.controller.postMessage({ type: 'PURGE_CACHES' });
+      return;
+    }
+
+    if (!('caches' in window)) { clearTimeout(bail); return done(); }
+
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .catch(() => {})
+      .then(() => { clearTimeout(bail); done(); });
+  });
+}
+
+// =============================================================================
+// Public: showUpdateBanner
+// Shows a non-intrusive bottom card with an "Update Now" button.
+//
+// Reached two ways:
+//   • the service worker itself changed → worker is the waiting ServiceWorker
+//   • version.json moved               → worker is null, newVersion is set
+//
+// Tap outside — dismisses without updating. The banner comes back the next time
+//               the tab is focused, so an update is offered until it is taken.
+// Tap button  — purges caches, then reloads onto the new build.
+// =============================================================================
+function showUpdateBanner(worker, newVersion) {
   // Don't stack multiple banners if the function is somehow called twice.
   const existing = document.getElementById('update-banner');
   if (existing && !existing.hidden) return;
@@ -331,15 +458,21 @@ function showUpdateBanner(worker) {
   // ── "Update Now" button ────────────────────────────────────────────────────
   document.getElementById('update-apply-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    dismiss();
-    // Ask the waiting SW to take over immediately.
-    worker.postMessage({ type: 'SKIP_WAITING' });
-    // SW.activate runs clients.claim() → fires 'controllerchange' here → reload.
-    navigator.serviceWorker.addEventListener(
-      'controllerchange',
-      () => window.location.reload(),
-      { once: true }
-    );
+
+    // Updating means re-downloading the whole app. Refuse while offline rather
+    // than purging the cache and leaving the user with nothing to load. The
+    // banner stays dismissible so they are not trapped behind it.
+    if (navigator.onLine === false) {
+      if (typeof showToast === 'function') showToast(t('error.network'), 'error');
+      return;
+    }
+
+    document.removeEventListener('click', _outsideClick);
+
+    const btn = document.getElementById('update-apply-btn');
+    if (btn) { btn.disabled = true; btn.textContent = t('action.loading'); }
+
+    applyUpdate(worker, newVersion);
   });
 
   // ── Tap / click outside banner → dismiss without updating ──────────────────
@@ -393,3 +526,4 @@ window.processQueue        = processQueue;
 window.getQueueCount       = getQueueCount;
 window.queueOfflineCheckin = queueOfflineCheckin;
 window.showUpdateBanner    = showUpdateBanner;
+window.checkAppVersion     = checkAppVersion;

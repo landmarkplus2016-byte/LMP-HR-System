@@ -1,0 +1,4 @@
+{
+  "version": "2026.08.25.1",
+  "note": "Bump `version` on every deploy. This file is the single source of truth for update detection — the app fetches it with no-store on startup and whenever the tab becomes visible, and shows the update banner when it differs from the running copy. Nothing else needs bumping."
+}
