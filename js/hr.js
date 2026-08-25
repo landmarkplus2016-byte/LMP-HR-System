@@ -1344,6 +1344,39 @@ let _empShifts = [], _empDepts = [], _empManagers = [];
 let _empDeactTarget = null;
 let _empBiometricTarget = null;
 
+// Roles that may be picked as somebody's manager, in the order they appear in
+// the dropdown. Not just `manager` — department managers report straight to the
+// CEO or MD, and leaving the executives out of this list is what left their
+// manager_id blank, their team missing from the org chart, and the executive
+// leave-approval queue permanently empty.
+const _EMP_MANAGER_ROLE_RANK = { manager: 0, ceo: 1, md: 2 };
+
+// Active employees eligible to be chosen as a manager, managers first, then the
+// executives, each group alphabetical. Declared once — the list is rebuilt on
+// both the initial load and every refetch.
+function _empEligibleManagers(records) {
+  return (records || [])
+    .filter(function(e) {
+      return _EMP_MANAGER_ROLE_RANK[String(e.role || '').toLowerCase()] !== undefined &&
+             String(e.active || '').toUpperCase() !== 'FALSE';
+    })
+    .sort(function(a, b) {
+      const ra = _EMP_MANAGER_ROLE_RANK[String(a.role).toLowerCase()];
+      const rb = _EMP_MANAGER_ROLE_RANK[String(b.role).toLowerCase()];
+      if (ra !== rb) return ra - rb;
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+}
+
+// Executives carry their title in the option text, so picking the CEO reads as
+// a deliberate choice rather than a stray name in a list of department managers
+function _empManagerLabel(m) {
+  const role = String(m.role || '').toLowerCase();
+  if (role === 'ceo') return m.name + ' — ' + t('employees.role_ceo');
+  if (role === 'md')  return m.name + ' — ' + t('employees.role_md');
+  return String(m.name || '');
+}
+
 async function renderEmployees(container) {
   container.innerHTML = `
     <div class="view-content">
@@ -1451,10 +1484,7 @@ async function renderEmployees(container) {
 
   if (empRes?.status === 'ok') {
     _empAllRecords = empRes.data.employees || [];
-    _empManagers   = _empAllRecords.filter(function(e) {
-      return String(e.role || '').toLowerCase() === 'manager' &&
-             String(e.active || '').toUpperCase() !== 'FALSE';
-    });
+    _empManagers   = _empEligibleManagers(_empAllRecords);
     _empFiltered = _empAllRecords.slice();
     _empPage = 1;
     _renderEmpTable();
@@ -1688,7 +1718,7 @@ function _renderEmpEditForm(emp) {
 
   const mgrOpts = `<option value="">—</option>` +
     _empManagers.filter(function(m) { return m.id !== emp.id; }).map(function(m) {
-      return `<option value="${_esc(m.id)}" ${emp.manager_id === m.id ? 'selected' : ''}>${_esc(m.name)}</option>`;
+      return `<option value="${_esc(m.id)}" ${emp.manager_id === m.id ? 'selected' : ''}>${_esc(_empManagerLabel(m))}</option>`;
     }).join('');
 
   bd.innerHTML = `
@@ -1844,7 +1874,7 @@ function _renderEmpAddForm() {
 
   const mgrOpts = `<option value="">—</option>` +
     _empManagers.map(function(m) {
-      return `<option value="${_esc(m.id)}">${_esc(m.name)}</option>`;
+      return `<option value="${_esc(m.id)}">${_esc(_empManagerLabel(m))}</option>`;
     }).join('');
 
   bd.innerHTML = `
@@ -2020,10 +2050,7 @@ async function _fetchEmployees() {
   const res = await apiGetAllEmployees();
   if (res?.status === 'ok') {
     _empAllRecords = res.data.employees || [];
-    _empManagers   = _empAllRecords.filter(function(e) {
-      return String(e.role || '').toLowerCase() === 'manager' &&
-             String(e.active || '').toUpperCase() !== 'FALSE';
-    });
+    _empManagers   = _empEligibleManagers(_empAllRecords);
     const q = document.getElementById('emp-search')?.value || '';
     _applyEmpFilter(q);
   }
