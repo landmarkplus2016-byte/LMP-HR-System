@@ -146,12 +146,42 @@ function _webauthnErrorKey(err) {
     case 'SecurityError':     return 'biometric.origin_error';
     case 'InvalidStateError': return 'biometric.already_on_device';
     case 'AbortError':        return 'biometric.timeout';
+    case 'TimeoutError':      return 'biometric.timeout';
     case 'UnknownError':      return 'biometric.device_error';
     // Anything unrecognised (NotReadableError, OperationError, …) came from a
     // phone that DOES support WebAuthn — the call ran and failed. Saying "not
     // supported" there sent employees and HR looking at the wrong problem.
     default:                  return 'biometric.device_error';
   }
+}
+
+// ---------------------------------------------------------------------------
+// _credentialCall — navigator.credentials.create/get with a hard deadline
+//
+// The WebAuthn `timeout` option is only a hint. On some Android phones the
+// system credential service never answers and never shows a prompt, which left
+// the check-in button on "Verifying fingerprint…" forever with no way out. The
+// signal aborts the request where the browser honours it; the race guarantees
+// the promise settles even where it does not.
+// ---------------------------------------------------------------------------
+function _credentialCall(method, deadlineMs, options) {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  let timer;
+
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error('Credential prompt did not respond');
+      err.name  = 'TimeoutError';
+      reject(err);
+      if (controller) controller.abort();
+    }, deadlineMs);
+  });
+
+  const call = navigator.credentials[method](
+    controller ? Object.assign({}, options, { signal: controller.signal }) : options
+  );
+
+  return Promise.race([call, deadline]).finally(() => clearTimeout(timer));
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +250,7 @@ async function registerFingerprint() {
   // 2 — OS biometric prompt, with one relaxed retry
   let credential;
   try {
-    credential = await navigator.credentials.create({ publicKey });
+    credential = await _credentialCall('create', 130000, { publicKey });
   } catch (err) {
     // Some devices reject the strict platform-only request but succeed when
     // the attachment constraint is dropped (lets the OS offer screen-lock
@@ -236,7 +266,7 @@ async function registerFingerprint() {
             requireResidentKey: false,
           },
         });
-        credential = await navigator.credentials.create({ publicKey: fallbackKey });
+        credential = await _credentialCall('create', 130000, { publicKey: fallbackKey });
       } catch (retryErr) {
         return { success: false, reason: t(_webauthnErrorKey(retryErr)), errorName: retryErr.name };
       }
@@ -295,7 +325,8 @@ async function verifyFingerprint() {
   // 2 — OS biometric prompt
   let assertion;
   try {
-    assertion = await navigator.credentials.get({
+    // 70 s deadline: past the 60 s prompt timeout, well short of a frozen screen
+    assertion = await _credentialCall('get', 70000, {
       publicKey: {
         challenge: _b64urlToBuf(challengeRes.data.challenge),
         allowCredentials: [{
@@ -305,7 +336,7 @@ async function verifyFingerprint() {
           // credential on devices that report their sensor differently.
         }],
         userVerification: 'required',
-        timeout:          120000,
+        timeout:          60000,
       },
     });
   } catch (err) {
