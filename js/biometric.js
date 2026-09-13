@@ -147,7 +147,10 @@ function _webauthnErrorKey(err) {
     case 'InvalidStateError': return 'biometric.already_on_device';
     case 'AbortError':        return 'biometric.timeout';
     case 'UnknownError':      return 'biometric.device_error';
-    default:                  return 'biometric.not_supported';
+    // Anything unrecognised (NotReadableError, OperationError, …) came from a
+    // phone that DOES support WebAuthn — the call ran and failed. Saying "not
+    // supported" there sent employees and HR looking at the wrong problem.
+    default:                  return 'biometric.device_error';
   }
 }
 

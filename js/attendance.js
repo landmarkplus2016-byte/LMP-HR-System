@@ -137,7 +137,7 @@ async function _runCheckIn(container, user) {
         return;
       }
       _setBtnState(btn, false, t('checkin.button'));
-      _showMsg(msg, bio.reason || t('biometric.failed'), 'error');
+      _showMsg(msg, _bioFailText(bio), 'error');
       _rewireOnce(btn, () => _runCheckIn(container, user));
       return;
     }
@@ -221,7 +221,7 @@ async function _runCheckOut(container, user) {
         return;
       }
       _setBtnState(btn, false, t('checkout.button'));
-      _showMsg(msg, bio.reason || t('biometric.failed'), 'error');
+      _showMsg(msg, _bioFailText(bio), 'error');
       _rewireOnce(btn, () => _runCheckOut(container, user));
       return;
     }
@@ -513,6 +513,14 @@ function _setBtnState(btn, loading, label) {
   btn.disabled = loading;
   const el = btn.querySelector('.checkin-btn-label');
   if (el) el.textContent = label || '';
+}
+
+// Fingerprint failure text for the check-in/out screen. The browser error name
+// is appended so a screenshot from a phone we cannot hold says exactly what
+// Android returned — the translated sentence alone maps several causes to one.
+function _bioFailText(bio) {
+  const text = bio.reason || t('biometric.failed');
+  return bio.errorName ? `${text} (${bio.errorName})` : text;
 }
 
 function _showMsg(msg, text, type) {
