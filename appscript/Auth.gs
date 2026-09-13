@@ -413,6 +413,19 @@ function webauthnAuthChallenge(payload) {
     };
   }
 
+  // HR cleared the credential (reset / new phone). Say so here, before any
+  // prompt: a phone still holding the stale local ID would otherwise call
+  // navigator.credentials.get() for a key Android no longer has, land on the
+  // "Scan this QR code" screen, and never reach webauthnAuthVerify — the only
+  // other place that tells the PWA to re-register.
+  if (!String(auth.employee.webauthn_credential_id || '').trim()) {
+    return error(
+      'Biometric not registered for this account',
+      'البصمة غير مسجّلة لهذا الحساب',
+      'biometric_not_registered'
+    );
+  }
+
   const challenge = _generateChallenge();
   const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
